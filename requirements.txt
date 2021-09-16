@@ -1,1 +1,10 @@
 .
+
+pyaudio
+requests
+
+# app
+flask
+
+# testing
+mock
