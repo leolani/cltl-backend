@@ -6,7 +6,7 @@ from cltl.backend.api.microphone import Microphone
 logger = logging.getLogger(__name__)
 
 
-class Backend(object):
+class Backend:
     """
     Abstract Backend on which all Backends are based
 

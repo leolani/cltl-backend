@@ -1,5 +1,6 @@
+import abc
 import logging
-from typing import Generator
+from typing import Iterable
 
 import numpy as np
 
@@ -17,7 +18,7 @@ The AbstractMicrophone holds a writer-lock on this resource.
 """
 
 
-class Microphone:
+class Microphone(abc.ABC):
     def __enter__(self):
         self.start()
         return self
@@ -39,7 +40,7 @@ class Microphone:
         """
         raise NotImplementedError()
 
-    def listen(self) -> Generator[np.array, None, None]:
+    def listen(self) -> Iterable[np.array]:
         """
         Retrieve an audio stream from the microphone.
 
