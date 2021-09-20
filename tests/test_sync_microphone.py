@@ -137,9 +137,7 @@ class SynchronizedMicrophoneTest(unittest.TestCase):
         def mute_mic():
             wait(reader_started)
             wait(mute)
-
             mic.mute()
-
             muted.set()
         mute_thread = threading.Thread(name="mute", target=mute_mic)
 
@@ -181,10 +179,10 @@ class SynchronizedMicrophoneTest(unittest.TestCase):
         self.assertTrue(mic.muted)
 
     def assertUnset(self, lock):
-        self.assertFalse(lock.wait(0.01))
+        self.assertFalse(lock.wait(0.1))
 
     def assertSet(self, lock):
-        self.assertTrue(lock.wait(0.01))
+        self.assertTrue(lock.wait(0.1))
 
 
 
