@@ -2,9 +2,11 @@
 
 pyaudio
 requests
+soundfile
 
 # app
 flask
 
 # testing
 mock
+parameterized
