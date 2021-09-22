@@ -1,12 +1,13 @@
 import logging
-import numpy as np
-from typing import Generator, Callable
+from typing import Generator, Iterator
 
-from cltl.backend.api.microphone import Microphone, AUDIO_RESOURCE_NAME, MIC_RESOURCE_NAME
-from cltl.backend.spi.audio import AudioSource
+import numpy as np
 from cltl.combot.infra.resource.api import ResourceManager
 from cltl.combot.infra.resource.threaded import ThreadedResourceManager
 from cltl.combot.infra.util import ThreadsafeBoolean
+
+from cltl.backend.api.microphone import Microphone, AUDIO_RESOURCE_NAME, MIC_RESOURCE_NAME, AudioParameters
+from cltl.backend.spi.audio import AudioSource
 
 logger = logging.getLogger(__name__)
 
@@ -57,6 +58,10 @@ class SynchronizedMicrophone(Microphone):
         self._resource_manager.retract_resource(AUDIO_RESOURCE_NAME)
         self._resource_manager.retract_resource(MIC_RESOURCE_NAME)
 
+    @property
+    def parameters(self) -> AudioParameters:
+        return AudioParameters(self._source.rate, self._source.channels, self._source.frame_size, self._source.depth)
+
     def mute(self) -> None:
         self._interrupt.value = True
         while not self.muted:
@@ -66,7 +71,7 @@ class SynchronizedMicrophone(Microphone):
     def muted(self) -> bool:
         return self._mic_lock.locked
 
-    def listen(self) -> Generator[np.array, None, None]:
+    def listen(self) -> Iterator[np.array]:
         """
         Provide audio input from the microphone.
 

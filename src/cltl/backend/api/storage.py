@@ -1,16 +1,9 @@
 import abc
-from dataclasses import dataclass
 from typing import Iterable, List, Union
 
 import numpy as np
 
-
-@dataclass
-class AudioParameters:
-    sampling_rate: int
-    channels : int
-    frame_size: int
-    sample_width: int
+from cltl.backend.api.microphone import AudioParameters
 
 
 class AudioStorage(abc.ABC):
@@ -35,6 +28,6 @@ class AudioStorage(abc.ABC):
         Iterable[np.array]:
             The audio data, split into chunks.
         AudioParameters
-            The :class:`AudioParameters` of the returned audio.
+            The :class:`~cltl.backend.api.microphone.AudioParameters` of the returned audio.
         """
         raise NotImplementedError()

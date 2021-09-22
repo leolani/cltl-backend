@@ -1,5 +1,6 @@
 import abc
 import logging
+from dataclasses import dataclass
 from typing import Iterable
 
 import numpy as np
@@ -18,6 +19,14 @@ The AbstractMicrophone holds a writer-lock on this resource.
 """
 
 
+@dataclass
+class AudioParameters:
+    sampling_rate: int
+    channels : int
+    frame_size: int
+    sample_width: int
+
+
 class Microphone(abc.ABC):
     def __enter__(self):
         self.start()
@@ -31,6 +40,10 @@ class Microphone(abc.ABC):
 
     def stop(self):
         pass
+
+    @property
+    def parameters(self) -> AudioParameters:
+        raise NotImplementedError()
 
     def mute(self) -> None:
         """

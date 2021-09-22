@@ -9,36 +9,45 @@ import soundfile as sf
 import time
 
 from cltl.backend.api.storage import AudioStorage, AudioParameters
+from cltl.combot.infra.config import ConfigurationManager
 
 
 class CachedAudioStorage(AudioStorage):
+    @classmethod
+    def from_config(cls, config_manager: ConfigurationManager):
+        backend_config = config_manager.get_config("cltl.backend")
+
+        return cls(backend_config.get("audio_storage_path"), backend_config.get_int("audio_source_buffer"))
+
     def __init__(self, storage_path: str, min_buffer: int = 16):
         self._storage_path = Path(storage_path)
         self._cache = dict()
         self._cache_params = dict()
         self._min_buffer = min_buffer
 
-    def store(self, id_: str, audio: Union[np.array, Iterable[np.array]], sampling_rate: int):
+    def store(self, audio_id: str, audio: Union[np.array, Iterable[np.array]], sampling_rate: int):
         if isinstance(audio, np.ndarray):
             audio = [audio]
 
-        self._cache[id_] = Queue()
+        self._cache[audio_id] = Queue()
         for frame in audio:
-            if id_ not in self._cache_params:
-                self._cache_params[id_] = self._audio_params(frame, sampling_rate)
-            self._cache[id_].put(frame)
+            if audio_id not in self._cache_params:
+                self._cache_params[audio_id] = self._audio_params(frame, sampling_rate)
+            self._cache[audio_id].put(frame)
 
-        if not self._cache[id_].qsize() == 0:
-            self._write(id_, self._cache[id_].queue, sampling_rate)
-        del self._cache[id_]
-        del self._cache_params[id_]
+        if not self._cache[audio_id].qsize() == 0:
+            self._write(audio_id, self._cache[audio_id].queue, sampling_rate)
+
+        del self._cache[audio_id]
+        if audio_id in self._cache_params:
+            del self._cache_params[audio_id]
 
     def _audio_params(self, audio, sampling_rate):
         channels = 1 if audio.ndim == 1 else audio.shape[1]
         if audio.dtype == np.int16:
             sample_wid_th = 2
         else:
-            raise ValueError("Only np.int16 is supported")
+            raise ValueError("Only np.int16 is supported, was: ", audio.dtype)
 
         return AudioParameters(sampling_rate, channels, audio.shape[0], sample_wid_th)
 

@@ -1,17 +1,64 @@
 import argparse
 import logging
 
+from cltl.combot.infra.config.k8config import K8LocalConfigurationContainer
+from cltl.combot.infra.di_container import singleton
+from cltl.combot.infra.event.kombu import KombuEventBusContainer
 from flask import Flask
-from werkzeug.serving import run_simple
 from werkzeug.middleware.dispatcher import DispatcherMiddleware
-from app.backend import backend_app
-from app.vad import vad_app
-from ao
+from werkzeug.serving import run_simple
+
+from cltl.backend.api.microphone import Microphone
+from cltl.backend.api.storage import AudioStorage
+from cltl.backend.impl.cached_storage import CachedAudioStorage
+from cltl.backend.impl.sync_microphone import SimpleMicrophone
+from cltl.backend.source.client_source import ClientAudioSource
+from cltl.backend.spi.audio import AudioSource
+from service.backend import AudioBackendService
+from service.storage import StorageService
 
 logger = logging.getLogger(__name__)
 
 
 app = Flask(__name__)
+
+
+K8LocalConfigurationContainer.load_configuration()
+
+
+class ApplicationContainer(KombuEventBusContainer, K8LocalConfigurationContainer):
+    @property
+    @singleton
+    def audio_storage(self) -> AudioStorage:
+        return CachedAudioStorage.from_config(self.config_manager)
+
+    @property
+    @singleton
+    def audio_source(self) -> AudioSource:
+        return ClientAudioSource.from_config(self.config_manager)
+
+    @property
+    @singleton
+    def microphone(self) -> Microphone:
+        return SimpleMicrophone(self.audio_source)
+
+    @property
+    @singleton
+    def backend_service(self) -> AudioBackendService:
+        return AudioBackendService(self.microphone, self.audio_storage, self.event_bus)
+
+    @property
+    @singleton
+    def storage_service(self) -> StorageService:
+        return StorageService(self.audio_storage)
+
+    def start(self):
+        self.storage_service.start()
+        self.backend_service.start()
+
+    def stop(self):
+        self.storage_service.start()
+        self.backend_service.start()
 
 
 if __name__ == '__main__':
@@ -31,8 +78,9 @@ if __name__ == '__main__':
 
     logger.info("Starting webserver with args: %s", args)
 
-    backend = backend_app(args.rate, args.channels, args.frame_duration * args.rate // 1000)
-    vad = vad_app()
+    application = ApplicationContainer()
+    web_application = DispatcherMiddleware(app, {'/storage': application.storage_service.app})
 
-    application = DispatcherMiddleware(app, {'/backend': backend, '/vad': vad})
-    run_simple('0.0.0.0', 8000, application, threaded=True, use_reloader=True, use_debugger=True, use_evalex=True)
+    application.start()
+    run_simple('0.0.0.0', 8000, web_application, threaded=True, use_reloader=True, use_debugger=True, use_evalex=True)
+    application.stop()

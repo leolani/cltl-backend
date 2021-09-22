@@ -7,7 +7,7 @@ from threading import Thread, Event
 import numpy as np
 
 from cltl.backend.api.storage import AudioParameters
-from cltl.backend.impl.singleton_storage import CachedAudioStorage
+from cltl.backend.impl.cached_storage import CachedAudioStorage
 
 
 def wait(lock: Event):

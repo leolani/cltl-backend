@@ -10,3 +10,4 @@ flask
 # testing
 mock
 parameterized
+pytest
