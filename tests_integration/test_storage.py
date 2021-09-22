@@ -6,7 +6,7 @@ import numpy as np
 from cltl.combot.backend.utils.audio import raw_frames_to_np
 
 from cltl.backend.impl.cached_storage import CachedAudioStorage
-from service.storage import StorageService
+from cltl_service.backend.storage import StorageService
 
 
 DEBUG = 0

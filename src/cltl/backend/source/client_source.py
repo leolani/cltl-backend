@@ -1,13 +1,11 @@
 import logging
-
-import numpy as np
-import requests
 from types import SimpleNamespace
 
-from cltl.backend.spi.audio import AudioSource
+import requests
 from cltl.combot.infra.config import ConfigurationManager
 
-from service.util import raw_frames_to_np, bytes_per_frame
+from cltl.backend.spi.audio import AudioSource
+from cltl.backend.api.util import raw_frames_to_np, bytes_per_frame
 
 logger = logging.getLogger(__name__)
 

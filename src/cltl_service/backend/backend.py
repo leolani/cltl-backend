@@ -2,15 +2,13 @@ import uuid
 from threading import Thread
 
 import time
-from emissor.representation.scenario import Modality
-
-from service.schema import AudioSignalStarted, AudioSignalStopped
-from cltl.backend.api.microphone import TOPIC as MIC_TOPIC, Microphone
-from cltl.backend.api.storage import AudioStorage
+from cltl.combot.infra.config import ConfigurationManager
 from cltl.combot.infra.event import EventBus, Event
 from cltl.combot.infra.util import ThreadsafeBoolean
 
-from cltl.combot.infra.config import ConfigurationManager
+from cltl.backend.api.microphone import Microphone
+from cltl.backend.api.storage import AudioStorage
+from cltl_service.backend.schema import AudioSignalStarted, AudioSignalStopped
 
 
 class AudioBackendService:

@@ -8,7 +8,6 @@ import numpy as np
 logger = logging.getLogger(__name__)
 
 
-TOPIC = "cltl.backend.api.microphone.topic"
 AUDIO_RESOURCE_NAME = "cltl.backend.api.audio"
 """Resource name to be shared with the speaker to mute the microphone when the speaker is active.
 The AbstractMicrophone holds a reader-lock on this resource.
@@ -25,6 +24,10 @@ class AudioParameters:
     channels : int
     frame_size: int
     sample_width: int
+
+
+class AudioFormat:
+    L16_MONO_16K_30MS = AudioParameters(16000, 1, 480, 2)
 
 
 class Microphone(abc.ABC):

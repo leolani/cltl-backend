@@ -14,8 +14,8 @@ from cltl.combot.infra.util import ThreadsafeBoolean
 from cltl.backend.impl.cached_storage import CachedAudioStorage
 from cltl.backend.impl.sync_microphone import SimpleMicrophone
 from cltl.backend.spi.audio import AudioSource
-from service.backend import AudioBackendService
-from service.schema import AudioSignalStarted, AudioSignalStopped
+from cltl_service.backend.backend import AudioBackendService
+from cltl_service.backend.schema import AudioSignalStarted, AudioSignalStopped
 
 DEBUG = 0
 

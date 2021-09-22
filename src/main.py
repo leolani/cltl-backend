@@ -14,8 +14,8 @@ from cltl.backend.impl.cached_storage import CachedAudioStorage
 from cltl.backend.impl.sync_microphone import SimpleMicrophone
 from cltl.backend.source.client_source import ClientAudioSource
 from cltl.backend.spi.audio import AudioSource
-from service.backend import AudioBackendService
-from service.storage import StorageService
+from cltl_service.backend.backend import AudioBackendService
+from cltl_service.backend.storage import StorageService
 
 logger = logging.getLogger(__name__)
 

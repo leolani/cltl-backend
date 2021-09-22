@@ -2,7 +2,7 @@ import unittest
 
 from parameterized import parameterized
 
-from service.util import bytes_per_frame
+from cltl.backend.api.util import bytes_per_frame
 
 
 class ServiceUtilTest(unittest.TestCase):
