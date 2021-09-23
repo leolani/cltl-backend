@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import List
 
 from emissor.representation.scenario import Modality
 
@@ -11,6 +12,7 @@ class SignalEvent:
     signal_id: str
     timestamp: float
     modality: Modality
+    files: List[str]
 
 
 @dataclass
@@ -28,8 +30,8 @@ class AudioSignalStarted(SignalStarted):
     parameters: AudioParameters
 
     @classmethod
-    def create(cls, audio_id: str, timestamp: float, parameters: AudioParameters):
-        return cls(cls.__name__, audio_id, timestamp, Modality.AUDIO, parameters)
+    def create(cls, signal_id: str, timestamp: float, files: List[str], parameters: AudioParameters):
+        return cls(cls.__name__, signal_id, timestamp, Modality.AUDIO, files, parameters)
 
 
 @dataclass
@@ -37,5 +39,5 @@ class AudioSignalStopped(SignalStopped):
     length: int
 
     @classmethod
-    def create(cls, audio_id: str, timestamp: float, length: int):
-        return cls(cls.__name__, audio_id, timestamp, Modality.AUDIO, length)
+    def create(cls, signal_id: str, timestamp: float, length: int):
+        return cls(cls.__name__, signal_id, timestamp, Modality.AUDIO, length)

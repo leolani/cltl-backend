@@ -68,7 +68,8 @@ class AudioBackendService:
             if frame is None:
                 continue
             if not started:
-                started = AudioSignalStarted.create(audio_id, time.time(), parameters)
+                files = [f"cltl-storage:/audio/{audio_id}"]
+                started = AudioSignalStarted.create(audio_id, time.time(), files, parameters)
                 event = Event.for_payload(started)
                 self._event_bus.publish(self._mic_topic, event)
 

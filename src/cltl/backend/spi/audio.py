@@ -4,7 +4,7 @@ from typing import Generator, Iterator, Iterable
 
 class AudioSource:
     def __enter__(self):
-        return iter(self)
+        return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         pass
@@ -16,17 +16,17 @@ class AudioSource:
         raise NotImplementedError()
 
     @property
-    def rate(self):
+    def rate(self) -> int:
         raise NotImplementedError()
 
     @property
-    def channels(self):
+    def channels(self) -> int:
         raise NotImplementedError()
 
     @property
-    def frame_size(self):
+    def frame_size(self) -> int:
         raise NotImplementedError()
 
     @property
-    def depth(self):
+    def depth(self) -> int:
         raise NotImplementedError()

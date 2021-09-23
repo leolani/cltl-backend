@@ -99,12 +99,13 @@ class SynchronizedMicrophone(Microphone):
 
         with self._source as audio:
             frame = False
+            audio_frames = iter(audio)
             while frame is not None:
                 if self._audio_lock.interrupted or self._interrupt.value:
                     self._try_mute()
 
                 if not self.muted:
-                    frame = self._next_frame(audio)
+                    frame = self._next_frame(audio_frames)
                     yield frame
                 else:
                     yield None
