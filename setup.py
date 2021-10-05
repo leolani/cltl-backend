@@ -4,7 +4,7 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 with open("VERSION", "r") as fh:
-    version = fh.read()
+    version = fh.read().strip()
 
 setup(
     name='cltl.backend',

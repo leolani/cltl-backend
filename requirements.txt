@@ -1,6 +1,6 @@
 .
 
-pyaudio
+PyAudio
 requests
 soundfile
 
@@ -10,4 +10,3 @@ flask
 # testing
 mock
 parameterized
-pytest
