@@ -3,7 +3,7 @@ from setuptools import setup, find_namespace_packages
 with open("README.md", "r") as fh:
     long_description = fh.read()
 
-with open("version.txt", "r") as fh:
+with open("VERSION", "r") as fh:
     version = fh.read()
 
 setup(
@@ -11,7 +11,7 @@ setup(
     version=version,
     package_dir={'': 'src'},
     packages=find_namespace_packages(include=['cltl.*'], where='src'),
-    data_files=[('version.txt', ['version.txt'])],
+    data_files=[('VERSION', ['VERSION'])],
     url="https://github.com/leolani/cltl-backend",
     license='MIT License',
     author='CLTL',
