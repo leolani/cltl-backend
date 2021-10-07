@@ -10,7 +10,7 @@ setup(
     name='cltl.backend',
     version=version,
     package_dir={'': 'src'},
-    packages=find_namespace_packages(include=['cltl.*'], where='src'),
+    packages=find_namespace_packages(include=['cltl.*', 'cltl_service.*'], where='src'),
     data_files=[('VERSION', ['VERSION'])],
     url="https://github.com/leolani/cltl-backend",
     license='MIT License',
@@ -20,7 +20,7 @@ setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     python_requires='>=3.8',
-    install_requires=['cltl-combot',
+    install_requires=['cltl.combot',
                       'emissor',
                       'numpy'],
 )
