@@ -26,6 +26,15 @@ class SignalStopped(SignalEvent):
 
 
 @dataclass
+class TextSignalEvent(SignalEvent):
+    text: str
+
+    @classmethod
+    def create(cls, signal_id: str, timestamp: float, text: str, files: List[str] = []):
+        return cls(cls.__name__, signal_id, timestamp, Modality.TEXT, files, text)
+
+
+@dataclass
 class AudioSignalStarted(SignalStarted):
     parameters: AudioParameters
 
@@ -40,4 +49,4 @@ class AudioSignalStopped(SignalStopped):
 
     @classmethod
     def create(cls, signal_id: str, timestamp: float, length: int):
-        return cls(cls.__name__, signal_id, timestamp, Modality.AUDIO, length)
+        return cls(cls.__name__, signal_id, timestamp, Modality.AUDIO, None, length)
