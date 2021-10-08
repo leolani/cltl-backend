@@ -1,8 +1,10 @@
+from emissor.representation.scenario import Modality
 from flask import Flask, Response, stream_with_context
 from flask import g as app_context
 from flask import request
 
 from cltl.backend.api.storage import AudioStorage
+from cltl.backend.api.util import np_to_raw_frames
 
 
 class StorageService:
@@ -23,11 +25,11 @@ class StorageService:
 
         self._app = Flask("audio_storage")
 
-        @self._app.put("/audio/<id>")
+        @self._app.route(f"/{Modality.AUDIO.name.lower()}/<id>", methods=['PUT'])
         def store_audio(id: str):
             return Response("Currently only storing audio directly from the microphone is supported", status=501)
 
-        @self._app.get("/audio/<id>")
+        @self._app.route(f"/{Modality.AUDIO.name.lower()}/<id>")
         def get_audio(id: str):
             """
             Get the audio data for the requested id.
@@ -57,9 +59,10 @@ class StorageService:
                         f"rate={parameters.sampling_rate};" \
                         f"channels={parameters.channels};" \
                         f"frame_size={parameters.frame_size}"
-            stream = stream_with_context(audio)
 
-            return Response(stream, mimetype=mime_type)
+            stream = stream_with_context(np_to_raw_frames(audio))
+
+            return self._app.response_class(stream, mimetype=mime_type)
 
         @self._app.after_request
         def set_cache_control(response):

@@ -4,7 +4,7 @@ import threading
 import time
 import unittest
 from threading import Event
-from typing import Iterator
+from typing import Iterator, Any
 
 import numpy as np
 from cltl.combot.infra.event.api import Event as CombotEvent
@@ -22,6 +22,22 @@ DEBUG = 0
 def wait(lock: threading.Event):
     if not lock.wait(1):
         raise unittest.TestCase.failureException("Latch timed out")
+
+
+class ThreadsafeValue:
+    def __init__(self, value: Any = None):
+        self._value = value
+        self._lock = threading.Lock()
+
+    @property
+    def value(self):
+        with self._lock:
+            return self._value
+
+    @value.setter
+    def value(self, value):
+        with self._lock:
+            self._value = value
 
 
 class TestAudioSource(AudioSource):
@@ -50,9 +66,12 @@ class TestAudioSource(AudioSource):
 
 class BackendTest(unittest.TestCase):
     def setUp(self):
+        self.backend_service = None
         self.tmp_dir = tempfile.mkdtemp()
 
     def tearDown(self):
+        if self.backend_service:
+            self.backend_service.stop()
         shutil.rmtree(self.tmp_dir)
 
     def test_backend_events(self):
@@ -63,8 +82,8 @@ class BackendTest(unittest.TestCase):
         audio_waiting = Event()
         audio_started = Event()
         audio_finished = Event()
-        start_event = ThreadsafeBoolean()
-        stop_event = ThreadsafeBoolean()
+        start_event = ThreadsafeValue(0)
+        stop_event = ThreadsafeValue(0)
 
         def audio_generator():
             audio_waiting.set()
@@ -80,29 +99,30 @@ class BackendTest(unittest.TestCase):
 
         audio_storage = CachedAudioStorage(self.tmp_dir)
         event_bus = SynchronousEventBus()
-        backend_service = AudioBackendService('mic_topic', SimpleMicrophone(audio_source), audio_storage, event_bus)
+        self.backend_service = AudioBackendService('mic_topic', SimpleMicrophone(audio_source), audio_storage, event_bus)
 
         audio_storage.store("1", audio, sampling_rate=16000)
-        backend_service.start()
+        self.backend_service.start()
 
         def handle_event(event: CombotEvent):
             if event.payload.type == AudioSignalStarted.__name__:
-                start_event.value = True
+                start_event.value += 1
             if event.payload.type == AudioSignalStopped.__name__:
-                stop_event.value = True
+                stop_event.value += 1
 
         event_bus.subscribe("mic_topic", handle_event)
 
         wait(audio_waiting)
-        self.assertFalse(start_event.value)
+        self.assertEqual(0, start_event.value)
+        self.assertEqual(0, stop_event.value)
         latch.set()
         wait(audio_started)
-        self.assertTrue(start_event.value)
-        self.assertFalse(stop_event.value)
+        self.assertEqual(1, start_event.value)
+        self.assertEqual(0, stop_event.value)
 
         latch2.set()
         wait(audio_finished)
         time.sleep(0.01)
-        self.assertTrue(stop_event.value)
-        backend_service.stop()
+        self.assertEqual(1, stop_event.value)
+        self.assertEqual(1, start_event.value)
 

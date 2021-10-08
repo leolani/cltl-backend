@@ -1,7 +1,7 @@
 import unittest
 
 import numpy as np
-from cltl.combot.backend.utils.audio import raw_frames_to_np
+from cltl.backend.api.util import raw_frames_to_np
 
 from host.server import backend_server
 

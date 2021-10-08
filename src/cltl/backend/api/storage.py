@@ -5,6 +5,8 @@ import numpy as np
 
 from cltl.backend.api.microphone import AudioParameters
 
+STORAGE_SCHEME = "cltl-storage"
+
 
 class AudioStorage(abc.ABC):
     def store(self, id: str, audio: Union[np.array, List[np.array]], sampling_rate: int):

@@ -1,11 +1,15 @@
 import logging
 from types import SimpleNamespace
+import posixpath
+from urllib.parse import urljoin
 
 import requests
 from cltl.combot.infra.config import ConfigurationManager
+from requests.adapters import HTTPAdapter, BaseAdapter
 
-from cltl.backend.spi.audio import AudioSource
+from cltl.backend.api.storage import STORAGE_SCHEME
 from cltl.backend.api.util import raw_frames_to_np, bytes_per_frame
+from cltl.backend.spi.audio import AudioSource
 
 logger = logging.getLogger(__name__)
 
@@ -13,15 +17,36 @@ logger = logging.getLogger(__name__)
 CONTENT_TYPE_SEPARATOR = ';'
 
 
+class CltlAudioAdapter(BaseAdapter):
+    """"Transport adapter" to support cltl-audio:// schema."""
+    def __init__(self, storage_url):
+        self._storage_url = storage_url
+        self._http_adapter = HTTPAdapter()
+
+    def send(self, request, stream=False, timeout=None, verify=True, cert=None, proxies=None):
+        storage_request = request.copy()
+
+        path = storage_request.url.split(f"{STORAGE_SCHEME}:")[1]
+        storage_request.url = urljoin(self._storage_url, path)
+
+        return self._http_adapter.send(storage_request, stream, timeout, verify, cert, proxies)
+
+    def close(self):
+        self._http_adapter.close()
+
+
 class ClientAudioSource(AudioSource):
     @classmethod
-    def from_config(cls, config_manager: ConfigurationManager):
+    def from_config(cls, config_manager: ConfigurationManager, url: str, offset: int = 0, length: int = -1):
         backend_config = config_manager.get_config("cltl.backend")
 
-        return cls(backend_config.get("server_url"))
+        storage_url = backend_config.get('storage_url')
 
-    def __init__(self, url: str, offset: int = 0, length: int = -1):
+        return cls(url, f"{storage_url}", offset, length)
+
+    def __init__(self, url: str, storage_url: str = None, offset: int = 0, length: int = -1):
         self._url = url
+        self._storage_url = storage_url
         self._length = length
         self._offset = offset
         self._request = None
@@ -35,11 +60,15 @@ class ClientAudioSource(AudioSource):
         if self._request is not None:
             raise ValueError("Client is already in use")
 
+        session = requests.session()
+        if self._storage_url:
+            session.mount(f"{STORAGE_SCHEME}:", CltlAudioAdapter(self._storage_url))
+
         has_parameters = self._offset or self._length > 0
         params = {"offset": self._offset, "length": self._length} if has_parameters else None
-        request = requests.get(self._url, params=params, stream=True).__enter__()
+        self._request = session.get(self._url, params=params, stream=True).__enter__()
 
-        content_type = request.headers['content-type'].split(CONTENT_TYPE_SEPARATOR)
+        content_type = self._request.headers['content-type'].split(CONTENT_TYPE_SEPARATOR)
         if not content_type[0].strip() == 'audio/L16' or len(content_type) != 4:
             # Only support 16bit audio for now
             raise ValueError("Unsupported content type {content_type[0]}, "
@@ -60,8 +89,6 @@ class ClientAudioSource(AudioSource):
         self.__exit__(None, None, None)
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        self._content.close()
-        self._content = None
         self._parameters = None
         self._iter = None
         self._request.__exit__(exc_type, exc_val, exc_tb)
@@ -72,7 +99,7 @@ class ClientAudioSource(AudioSource):
 
     @property
     def audio(self):
-        return raw_frames_to_np(self.content)
+        return raw_frames_to_np(self.content, self.frame_size, self.channels, self.depth)
 
     @property
     def rate(self):

@@ -3,7 +3,7 @@ import tempfile
 import unittest
 
 import numpy as np
-from cltl.combot.backend.utils.audio import raw_frames_to_np
+from cltl.backend.api.util import raw_frames_to_np
 
 from cltl.backend.impl.cached_storage import CachedAudioStorage
 from cltl_service.backend.storage import StorageService
@@ -38,4 +38,3 @@ class StorageServiceTest(unittest.TestCase):
             if DEBUG:
                 import soundfile as sf
                 sf.write("test.wav", data=np.concatenate(frames), samplerate=16000)
-
