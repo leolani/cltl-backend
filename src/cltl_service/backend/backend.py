@@ -76,6 +76,7 @@ class AudioBackendService:
             samples += len(frame)
             yield frame
 
-        stopped = AudioSignalStopped.create(audio_id, time.time(), samples)
-        event = Event.for_payload(stopped)
-        self._event_bus.publish(self._mic_topic, event)
+        if started:
+            stopped = AudioSignalStopped.create(audio_id, time.time(), samples)
+            event = Event.for_payload(stopped)
+            self._event_bus.publish(self._mic_topic, event)
