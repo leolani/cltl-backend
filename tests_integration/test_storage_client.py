@@ -1,23 +1,19 @@
 import shutil
 import tempfile
 import unittest
-from multiprocessing import Process
 from threading import Thread
 
 import numpy as np
-import requests
-from flask import request, Response
 from werkzeug.serving import make_server
 
 from cltl.backend.api.storage import STORAGE_SCHEME
 from cltl.backend.api.util import raw_frames_to_np
-
 from cltl.backend.impl.cached_storage import CachedAudioStorage
 from cltl.backend.source.client_source import ClientAudioSource
 from cltl_service.backend.storage import StorageService
 
-
 DEBUG = 0
+
 
 class ServerThread(Thread):
     def __init__(self, app):

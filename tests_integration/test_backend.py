@@ -9,7 +9,6 @@ from typing import Iterator, Any
 import numpy as np
 from cltl.combot.infra.event.api import Event as CombotEvent
 from cltl.combot.infra.event.memory import SynchronousEventBus
-from cltl.combot.infra.util import ThreadsafeBoolean
 
 from cltl.backend.impl.cached_storage import CachedAudioStorage
 from cltl.backend.impl.sync_microphone import SimpleMicrophone
