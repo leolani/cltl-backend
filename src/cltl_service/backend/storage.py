@@ -1,3 +1,5 @@
+import logging
+
 from emissor.representation.scenario import Modality
 from flask import Flask, Response, stream_with_context
 from flask import g as app_context

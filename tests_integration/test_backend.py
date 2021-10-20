@@ -43,6 +43,7 @@ class TestAudioSource(AudioSource):
     def __init__(self, audio):
         self._audio = audio
 
+    @property
     def audio(self) -> Iterator[np.array]:
         return self._audio
 

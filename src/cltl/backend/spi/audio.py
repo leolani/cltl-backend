@@ -10,8 +10,9 @@ class AudioSource:
         pass
 
     def __iter__(self):
-        return iter(self.audio())
+        return iter(self.audio)
 
+    @property
     def audio(self) -> Iterable[np.array]:
         raise NotImplementedError()
 

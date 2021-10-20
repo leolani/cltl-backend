@@ -37,9 +37,10 @@ class CltlAudioAdapter(BaseAdapter):
 
 class ClientAudioSource(AudioSource):
     @classmethod
-    def from_config(cls, config_manager: ConfigurationManager, url: str, offset: int = 0, length: int = -1):
+    def from_config(cls, config_manager: ConfigurationManager, url: str = None, offset: int = 0, length: int = -1):
         backend_config = config_manager.get_config("cltl.backend")
 
+        url = url if url else f"{backend_config.get('server_url')}/mic"
         storage_url = backend_config.get('storage_url')
 
         return cls(url, f"{storage_url}", offset, length)
@@ -67,11 +68,20 @@ class ClientAudioSource(AudioSource):
         has_parameters = self._offset or self._length > 0
         params = {"offset": self._offset, "length": self._length} if has_parameters else None
         self._request = session.get(self._url, params=params, stream=True).__enter__()
+        if self._request.status_code != 200:
+            code = self._request.status_code
+            text = self._request.text
+            self._request.close()
+            self._request = None
+            raise ValueError(f"Requests failed ({code}): {text}")
+
 
         content_type = self._request.headers['content-type'].split(CONTENT_TYPE_SEPARATOR)
         if not content_type[0].strip() == 'audio/L16' or len(content_type) != 4:
             # Only support 16bit audio for now
-            raise ValueError("Unsupported content type {content_type[0]}, "
+            self._request.close()
+            self._request = None
+            raise ValueError(f"Unsupported content type {content_type[0]}, "
                              "expected audio/L16 with rate, channels and frame_size paramters")
 
         self._parameters = SimpleNamespace(**{p.split('=')[0].strip(): int(p.split('=')[1].strip())
@@ -89,9 +99,9 @@ class ClientAudioSource(AudioSource):
         self.__exit__(None, None, None)
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        self._parameters = None
         self._iter = None
         self._request.__exit__(exc_type, exc_val, exc_tb)
+        self._request = None
 
     @property
     def content(self):

@@ -1,5 +1,6 @@
 import abc
 import logging
+from contextlib import contextmanager
 from dataclasses import dataclass
 from typing import Iterable
 
@@ -56,7 +57,8 @@ class Microphone(abc.ABC):
         """
         raise NotImplementedError()
 
-    def listen(self) -> Iterable[np.array]:
+    @contextmanager
+    def listen(self) -> [Iterable[np.array], AudioParameters]:
         """
         Retrieve an audio stream from the microphone.
 

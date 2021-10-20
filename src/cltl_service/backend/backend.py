@@ -1,3 +1,4 @@
+import logging
 import uuid
 from threading import Thread
 
@@ -11,13 +12,16 @@ from cltl.backend.api.storage import AudioStorage
 from cltl_service.backend.schema import AudioSignalStarted, AudioSignalStopped
 
 
+logger = logging.getLogger(__name__)
+
+
 class AudioBackendService:
     @classmethod
     def from_config(cls, mic: Microphone, storage: AudioStorage, event_bus: EventBus,
                     config_manager: ConfigurationManager):
-        config = config_manager.get_config("cltl.backend")
+        config = config_manager.get_config("cltl.backend.mic")
 
-        return cls(config.get('mic_topic'), mic, storage, event_bus)
+        return cls(config.get('topic'), mic, storage, event_bus)
 
     def __init__(self, mic_topic: str, mic: Microphone, storage: AudioStorage, event_bus: EventBus):
         self._mic_topic = mic_topic
@@ -40,11 +44,16 @@ class AudioBackendService:
 
         def run():
             while self._running.value:
-                audio_id = str(uuid.uuid4())
-                audio = self._mic.listen()
-                self._store(audio_id, self._audio_with_events(audio_id, audio, self._mic),
-                            self._mic.parameters.sampling_rate)
-                self._mic.mute()
+                try:
+                    audio_id = str(uuid.uuid4())
+                    with self._mic.listen() as (audio, params):
+                        self._store(audio_id, self._audio_with_events(audio_id, audio, params),
+                                    params.sampling_rate)
+                        logger.info("Stored audio %s", audio_id)
+                    self._mic.mute()
+                except:
+                    logger.exception("Failed to listen to mic")
+                    time.sleep(1)
 
         self._thread = Thread(name="cltl.backend", target=run)
         self._thread.start()

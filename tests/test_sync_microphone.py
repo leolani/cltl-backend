@@ -5,7 +5,7 @@ import threading
 import unittest
 from typing import Generator
 
-from cltl.backend.api.microphone import MIC_RESOURCE_NAME
+from cltl.backend.api.microphone import MIC_RESOURCE_NAME, AudioParameters
 from cltl.backend.impl.sync_microphone import SynchronizedMicrophone
 from cltl.backend.spi.audio import AudioSource
 from cltl.combot.infra.resource.threaded import ThreadedResourceManager
@@ -16,7 +16,7 @@ logger.setLevel(logging.DEBUG)
 
 
 def wait(lock: threading.Event):
-    if not lock.wait(1):
+    if not lock.wait(699):
         raise unittest.TestCase.failureException("Latch timed out")
 
 
@@ -44,6 +44,7 @@ class TestSource(AudioSource):
     def depth(self):
         return 2
 
+    @property
     def audio(self) -> Generator[np.array, None, None]:
         for i in range(10):
             if (not self.processing or self.processing.isSet()) and self.pause_processing:
@@ -71,12 +72,16 @@ class SynchronizedMicrophoneTest(unittest.TestCase):
     def test_listen(self):
         self.assertFalse(self.mic.muted)
 
-        audio = [frame for frame in self.mic.listen()]
+        with self.mic.listen() as (mic_audio, params):
+            audio = [frame for frame in mic_audio]
+            parameters = params
 
         self.assertEqual(11, len(audio))
         self.assertIsNone(audio[10])
         self.assertTrue(all(frame.shape == (2,) for frame in audio[:-1]))
         self.assertEqual([i for i in range(10)], [frame[0] for frame in audio[:-1]])
+
+        self.assertEqual(AudioParameters(200, 1, 2, 2), parameters)
 
         self.assertFalse(self.mic.muted)
 
@@ -102,7 +107,8 @@ class SynchronizedMicrophoneTest(unittest.TestCase):
 
         self.assertFalse(self.mic.muted)
 
-        audio = [frame for frame in self.mic.listen()]
+        with self.mic.listen() as (mic_audio, params):
+            audio = [frame for frame in mic_audio]
 
         self.assertEqual(7, len(audio))
         self.assertIsNone(audio[6])
@@ -154,7 +160,8 @@ class SynchronizedMicrophoneTest(unittest.TestCase):
 
         def run_mic():
             mic.start()
-            audio = [frame for frame in mic.listen()]
+            with mic.listen() as (mic_audio, params):
+                [frame for frame in mic_audio]
         mic_thread = threading.Thread(name="mic", target=run_mic)
 
         mic_thread.start()

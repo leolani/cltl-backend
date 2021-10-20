@@ -1,3 +1,4 @@
+import contextlib
 import logging
 from typing import Generator, Iterator
 
@@ -30,7 +31,8 @@ class SynchronizedMicrophone(Microphone):
         self._processor_scheduler = None
 
         self._source = source
-        self._timeout_interval = 0.5 * source.frame_size / source.rate
+        # TODO
+        self._timeout_interval = 0.5 * source.frame_size / source.rate if source.frame_size and source.rate else 1
 
         self._source_audio = None
         self._audio_lock = None
@@ -71,6 +73,7 @@ class SynchronizedMicrophone(Microphone):
     def muted(self) -> bool:
         return self._mic_lock.locked
 
+    @contextlib.contextmanager
     def listen(self) -> Iterator[np.array]:
         """
         Provide audio input from the microphone.
@@ -98,18 +101,21 @@ class SynchronizedMicrophone(Microphone):
             self._try_unmute()
 
         with self._source as audio:
-            frame = False
-            audio_frames = iter(audio)
-            while frame is not None:
-                if self._audio_lock.interrupted or self._interrupt.value:
-                    self._try_mute()
+            yield self._get_audio(audio), self.parameters
 
-                if not self.muted:
-                    frame = self._next_frame(audio_frames)
-                    yield frame
-                else:
-                    yield None
-                    return
+    def _get_audio(self, audio) -> Iterator[np.array]:
+        frame = False
+        audio_frames = iter(audio)
+        while frame is not None:
+            if self._audio_lock.interrupted or self._interrupt.value:
+                self._try_mute()
+
+            if not self.muted:
+                frame = self._next_frame(audio_frames)
+                yield frame
+            else:
+                yield None
+                return
 
     def _next_frame(self, audio):
         try:

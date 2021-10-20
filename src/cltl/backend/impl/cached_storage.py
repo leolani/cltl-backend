@@ -20,7 +20,7 @@ class CachedAudioStorage(AudioStorage):
         return cls(backend_config.get("audio_storage_path"), backend_config.get_int("audio_source_buffer"))
 
     def __init__(self, storage_path: str, min_buffer: int = 16):
-        self._storage_path = Path(storage_path)
+        self._storage_path = Path(storage_path).resolve()
         self._cache = dict()
         self._cache_params = dict()
         self._min_buffer = min_buffer
