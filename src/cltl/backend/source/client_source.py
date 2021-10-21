@@ -29,6 +29,8 @@ class CltlAudioAdapter(BaseAdapter):
         path = storage_request.url.split(f"{STORAGE_SCHEME}:")[1]
         storage_request.url = urljoin(self._storage_url, path)
 
+        logger.debug("Resolve %s to %s", request.url, storage_request.url)
+
         return self._http_adapter.send(storage_request, stream, timeout, verify, cert, proxies)
 
     def close(self):
@@ -73,7 +75,7 @@ class ClientAudioSource(AudioSource):
             text = self._request.text
             self._request.close()
             self._request = None
-            raise ValueError(f"Requests failed ({code}): {text}")
+            raise ValueError(f"Requests to {self._url} with {params} failed ({code}): {text}")
 
 
         content_type = self._request.headers['content-type'].split(CONTENT_TYPE_SEPARATOR)
