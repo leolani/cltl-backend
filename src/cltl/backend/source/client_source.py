@@ -68,8 +68,11 @@ class ClientAudioSource(AudioSource):
             session.mount(f"{STORAGE_SCHEME}:", CltlAudioAdapter(self._storage_url))
 
         has_parameters = self._offset or self._length > 0
-        params = {"offset": self._offset, "length": self._length} if has_parameters else None
-        self._request = session.get(self._url, params=params, stream=True).__enter__()
+        url = self._url
+        if has_parameters:
+            params = {"offset": self._offset, "length": self._length}
+            url += "?" + '&'.join(['%s=%s' % (key, value) for (key, value) in params.items()])
+        self._request = session.get(url, stream=True).__enter__()
         if self._request.status_code != 200:
             code = self._request.status_code
             text = self._request.text
