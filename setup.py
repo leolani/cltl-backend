@@ -20,7 +20,25 @@ setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     python_requires='>=3.8',
-    install_requires=['cltl.combot',
-                      'emissor',
-                      'numpy'],
+    install_requires=['numpy'],
+    extras_require={
+        "impl": [
+            "mock",
+            "requests",
+            "parameterized"
+        ],
+        "host": [
+            "pyaudio",
+            "flask"
+        ],
+        "service": [
+            "cltl.backend",
+            "cltl.combot",
+            "emissor",
+            "pyaudio",
+            "requests",
+            "sounddevice",
+            "soundfile"
+        ]
+    }
 )

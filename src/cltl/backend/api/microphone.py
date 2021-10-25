@@ -58,7 +58,7 @@ class Microphone(abc.ABC):
         raise NotImplementedError()
 
     @contextmanager
-    def listen(self) -> [Iterable[np.array], AudioParameters]:
+    def listen(self) -> [Iterable[np.ndarray], AudioParameters]:
         """
         Retrieve an audio stream from the microphone.
 

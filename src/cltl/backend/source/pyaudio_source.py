@@ -1,11 +1,17 @@
 import logging
-import pyaudio
 import uuid
+from typing import Iterable
+
+import numpy as np
+import pyaudio
+
+from cltl.backend.api.util import raw_frames_to_np
+from cltl.backend.spi.audio import AudioSource
 
 logger = logging.getLogger(__name__)
 
 
-class PyAudioMic:
+class PyAudioSource(AudioSource):
     BUFFER = 8
 
     def __init__(self, rate, channels, frame_size):
@@ -19,6 +25,26 @@ class PyAudioMic:
         self._active = False
         self._start_time = None
         self._time = None
+
+    @property
+    def audio(self) -> Iterable[np.array]:
+        return raw_frames_to_np(self, self.frame_size, self.channels, self.depth)
+
+    @property
+    def rate(self) -> int:
+        return self._rate
+
+    @property
+    def channels(self) -> int:
+        return self._channels
+
+    @property
+    def frame_size(self) -> int:
+        return self._frame_size
+
+    @property
+    def depth(self) -> int:
+        return 2
 
     @property
     def active(self):

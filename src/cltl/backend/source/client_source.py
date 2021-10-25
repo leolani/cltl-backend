@@ -1,6 +1,5 @@
 import logging
 from types import SimpleNamespace
-import posixpath
 from urllib.parse import urljoin
 
 import requests

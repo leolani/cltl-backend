@@ -1,5 +1,5 @@
 import numpy as np
-from typing import Generator, Iterator, Iterable
+from typing import Iterable
 
 
 class AudioSource:
@@ -13,7 +13,7 @@ class AudioSource:
         return iter(self.audio)
 
     @property
-    def audio(self) -> Iterable[np.array]:
+    def audio(self) -> Iterable[np.ndarray]:
         raise NotImplementedError()
 
     @property

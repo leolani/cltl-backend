@@ -9,10 +9,10 @@ STORAGE_SCHEME = "cltl-storage"
 
 
 class AudioStorage(abc.ABC):
-    def store(self, id: str, audio: Union[np.array, List[np.array]], sampling_rate: int):
+    def store(self, id: str, audio: Union[np.ndarray, List[np.ndarray]], sampling_rate: int):
         raise NotImplementedError()
 
-    def get(self, id: str, offset: int = 0, length: int = -1) -> (Iterable[np.array], AudioParameters):
+    def get(self, id: str, offset: int = 0, length: int = -1) -> (Iterable[np.ndarray], AudioParameters):
         """
         Return audio data for the given id, starting from the given offset.
 

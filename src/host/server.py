@@ -3,7 +3,7 @@ import logging
 from flask import Flask, Response, stream_with_context
 from flask import g as app_context
 
-from cltl.backend.source.pyaudio_source import PyAudioMic
+from cltl.backend.source.pyaudio_source import PyAudioSource
 
 logger = logging.getLogger(__name__)
 
@@ -13,7 +13,7 @@ def backend_server(sampling_rate, channels, frame_size):
 
     @app.route('/mic')
     def stream_mic():
-        mic = PyAudioMic(sampling_rate, channels, frame_size)
+        mic = PyAudioSource(sampling_rate, channels, frame_size)
 
         def audio_stream(mic):
             with mic as mic_stream:
