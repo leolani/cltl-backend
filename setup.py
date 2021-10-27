@@ -28,8 +28,8 @@ setup(
             "parameterized"
         ],
         "host": [
-            "pyaudio",
-            "flask"
+            "pyaudio>=0.2.11",
+            "flask>=1.1.2"
         ],
         "service": [
             "cltl.backend",
