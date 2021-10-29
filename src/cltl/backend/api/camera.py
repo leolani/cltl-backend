@@ -26,9 +26,11 @@ class CameraResolution(enum.Enum):
     VGA = 640, 480
     VGA4 = 1280, 960
 
+    @property
     def width(self):
         return self.value[0]
 
+    @property
     def height(self):
         return self.value[1]
 

@@ -29,6 +29,7 @@ setup(
         ],
         "host": [
             "pyaudio",
+            "opencv-python",
             "flask"
         ],
         "service": [
