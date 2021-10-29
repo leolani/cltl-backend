@@ -1,7 +1,7 @@
 import logging
 
 from cltl.backend.api.microphone import Microphone
-
+from cltl.backend.api.text_to_speech import TextToSpeech
 
 logger = logging.getLogger(__name__)
 
@@ -53,3 +53,14 @@ class Backend:
         Microphone
         """
         return self._microphone
+
+    @property
+    def text_to_speech(self) -> TextToSpeech:
+        """
+        Reference to :class:`~cltl.backend.api.text_to_speech.TextToSpeech`
+
+        Returns
+        -------
+        TextToSpeech
+        """
+        return self._text_to_speech
