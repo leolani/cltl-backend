@@ -149,7 +149,7 @@ class CachedImageStorage(ImageStorage):
     def from_config(cls, config_manager: ConfigurationManager):
         backend_config = config_manager.get_config("cltl.backend")
 
-        return cls(backend_config.get("image_storage_path"), backend_config.get_int("image_buffer"))
+        return cls(backend_config.get("image_storage_path"), backend_config.get_int("image_cache"))
 
     def __init__(self, storage_path: str, max_buffer: int = 16):
         self._storage_path = Path(storage_path).resolve()
