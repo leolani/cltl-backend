@@ -36,10 +36,11 @@ setup(
             "cltl.backend",
             "cltl.combot",
             "emissor",
+            "flask",
             "pyaudio",
             "requests",
             "sounddevice",
-            "soundfile"
+            "soundfile",
         ]
     }
 )

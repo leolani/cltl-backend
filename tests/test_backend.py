@@ -125,4 +125,3 @@ class BackendTest(unittest.TestCase):
         time.sleep(0.01)
         self.assertEqual(1, stop_event.value)
         self.assertEqual(1, start_event.value)
-
