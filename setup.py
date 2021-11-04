@@ -28,6 +28,7 @@ setup(
             "parameterized"
         ],
         "host": [
+            "cachetools",
             "pyaudio",
             "opencv-python",
             "flask"

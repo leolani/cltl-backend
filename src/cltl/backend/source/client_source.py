@@ -1,14 +1,20 @@
+import json
 import logging
 from types import SimpleNamespace
+from typing import Any
 from urllib.parse import urljoin
 
+import numpy as np
 import requests
 from cltl.combot.infra.config import ConfigurationManager
+from emissor.representation.scenario import Modality
 from requests.adapters import HTTPAdapter, BaseAdapter
 
+from cltl.backend.api.camera import Image, CameraResolution, Bounds
 from cltl.backend.api.storage import STORAGE_SCHEME
 from cltl.backend.api.util import raw_frames_to_np, bytes_per_frame
 from cltl.backend.spi.audio import AudioSource
+from cltl.backend.spi.image import ImageSource
 
 logger = logging.getLogger(__name__)
 
@@ -16,9 +22,11 @@ logger = logging.getLogger(__name__)
 CONTENT_TYPE_SEPARATOR = ';'
 
 
+# TODO Rename to CltlStorageAdapter
 class CltlAudioAdapter(BaseAdapter):
-    """"Transport adapter" to support cltl-audio:// schema."""
+    """"Transport adapter" to support cltl-storage:// schema."""
     def __init__(self, storage_url):
+        super().__init__()
         self._storage_url = storage_url
         self._http_adapter = HTTPAdapter()
 
@@ -41,7 +49,7 @@ class ClientAudioSource(AudioSource):
     def from_config(cls, config_manager: ConfigurationManager, url: str = None, offset: int = 0, length: int = -1):
         backend_config = config_manager.get_config("cltl.backend")
 
-        url = url if url else f"{backend_config.get('server_url')}/mic"
+        url = url if url else f"{backend_config.get('server_url')}/{Modality.AUDIO.name.lower()}"
         storage_url = backend_config.get('storage_url')
 
         return cls(url, f"{storage_url}", offset, length)
@@ -67,6 +75,7 @@ class ClientAudioSource(AudioSource):
             session.mount(f"{STORAGE_SCHEME}:", CltlAudioAdapter(self._storage_url))
 
         has_parameters = self._offset or self._length > 0
+        params = None
         url = self._url
         if has_parameters:
             params = {"offset": self._offset, "length": self._length}
@@ -134,3 +143,68 @@ class ClientAudioSource(AudioSource):
     @property
     def depth(self):
         return self._parameters.depth if self._parameters else None
+
+
+class ClientImageSource(ImageSource):
+    @classmethod
+    def from_config(cls, config_manager: ConfigurationManager, url: str = None):
+        backend_config = config_manager.get_config("cltl.backend")
+
+        url = url if url else f"{backend_config.get('server_url')}/{Modality.VIDEO.name.lower()}"
+        storage_url = backend_config.get('storage_url')
+
+        return cls(url, f"{storage_url}")
+
+    def __init__(self, url: str, storage_url: str = None):
+        self._url = url
+        self._storage_url = storage_url
+        self._image = None
+
+    def connect(self):
+        self.__enter__()
+
+    def __enter__(self):
+        if self._image is not None:
+            raise ValueError("Client is already in use")
+
+        session = requests.session()
+        if self._storage_url:
+            session.mount(f"{STORAGE_SCHEME}:", CltlAudioAdapter(self._storage_url))
+
+        with session.get(self._url, stream=True) as request:
+            if request.status_code != 200:
+                code = request.status_code
+                text = request.text
+                raise ValueError(f"Requests to {self._url} failed ({code}): {text}")
+
+            logger.debug("Connected to backend at %s", self._url)
+
+            self._image = self._deserialize(request.json())
+
+        return self
+
+    # TODO centralize
+    def _deserialize(self, json_data: Any) -> Image:
+        image = np.array(json_data['image'])
+        bounds = Bounds(**json_data['bounds'])
+        depth = np.array(json_data['depth']) if 'depth' in json_data and json_data['depth'] else None
+
+        return Image(image, bounds, depth)
+
+    def close(self):
+        self.__exit__(None, None, None)
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self._image = None
+
+    @property
+    def resolution(self) -> CameraResolution:
+        if not self._image:
+            raise ValueError("Called outside context")
+        try:
+            return CameraResolution(self._image.image.shape[:2])
+        except ValueError:
+            return CameraResolution.NATIVE
+
+    def capture(self) -> Image:
+        return self._image

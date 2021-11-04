@@ -1,17 +1,27 @@
-import logging
-
+import numpy as np
 from emissor.representation.scenario import Modality
-from flask import Flask, Response, stream_with_context
+from flask import Flask, Response, stream_with_context, jsonify
 from flask import g as app_context
 from flask import request
+from flask.json import JSONEncoder
 
-from cltl.backend.api.storage import AudioStorage
+from cltl.backend.api.storage import AudioStorage, ImageStorage
 from cltl.backend.api.util import np_to_raw_frames
 
 
+# TODO move to common util in combot
+class NumpyJSONEncoder(JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, np.ndarray):
+            return obj.tolist()
+
+        return super().default(obj)
+
+
 class StorageService:
-    def __init__(self, storage: AudioStorage):
-        self._storage = storage
+    def __init__(self, storage_audio: AudioStorage, storage_image: ImageStorage):
+        self._storage_audio = storage_audio
+        self._storage_image = storage_image
         self._app = None
 
     def start(self):
@@ -26,13 +36,14 @@ class StorageService:
             return self._app
 
         self._app = Flask("audio_storage")
+        self._app.json_encoder = NumpyJSONEncoder
 
-        @self._app.route(f"/{Modality.AUDIO.name.lower()}/<id>", methods=['PUT'])
-        def store_audio(id: str):
+        @self._app.route(f"/{Modality.AUDIO.name.lower()}/<audio_id>", methods=['PUT'])
+        def store_audio(audio_id: str):
             return Response("Currently only storing audio directly from the microphone is supported", status=501)
 
-        @self._app.route(f"/{Modality.AUDIO.name.lower()}/<id>")
-        def get_audio(id: str):
+        @self._app.route(f"/{Modality.AUDIO.name.lower()}/<audio_id>")
+        def get_audio(audio_id: str):
             """
             Get the audio data for the requested id.
 
@@ -52,7 +63,7 @@ class StorageService:
             offset = request.args.get("offset", default=0, type=int)
             length = request.args.get("length", default=-1, type=int)
 
-            audio, parameters = self._storage.get(id, offset=offset, length=length)
+            audio, parameters = self._storage_audio.get(audio_id, offset=offset, length=length)
 
             # Store audio in (thread-local) app-context to be able to close it.
             app_context.audio = audio
@@ -66,14 +77,6 @@ class StorageService:
 
             return self._app.response_class(stream, mimetype=mime_type)
 
-        @self._app.after_request
-        def set_cache_control(response):
-            response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
-            response.headers['Pragma'] = 'no-cache'
-            response.headers['Expires'] = '0'
-
-            return response
-
         @self._app.teardown_request
         def close_audio(_=None):
             if "audio" in app_context:
@@ -81,5 +84,23 @@ class StorageService:
                     app_context.audio.close()
                 except:
                     pass
+
+        @self._app.route(f"/{Modality.VIDEO.name.lower()}/<image_id>", methods=['PUT'])
+        def store_image(image_id: str):
+            return Response("Currently only storing audio directly from the microphone is supported", status=501)
+
+        @self._app.route(f"/{Modality.VIDEO.name.lower()}/<image_id>")
+        def get_image(image_id: str):
+            image = self._storage_image.get(image_id)
+
+            return jsonify(image)
+
+        @self._app.after_request
+        def set_cache_control(response):
+            response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+            response.headers['Pragma'] = 'no-cache'
+            response.headers['Expires'] = '0'
+
+            return response
 
         return self._app

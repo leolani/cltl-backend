@@ -1,15 +1,24 @@
 import json
+import logging
+import os.path
+import pickle
+import time
 from pathlib import Path
 from queue import Queue, Empty
 from types import SimpleNamespace
 from typing import Iterable, Union
 
+import PIL
+import cv2
 import numpy as np
 import soundfile as sf
-import time
-
-from cltl.backend.api.storage import AudioStorage, AudioParameters
+from cachetools import LRUCache
 from cltl.combot.infra.config import ConfigurationManager
+
+from cltl.backend.api.camera import Image, Bounds
+from cltl.backend.api.storage import AudioStorage, AudioParameters, ImageStorage
+
+logger = logging.getLogger(__name__)
 
 
 class CachedAudioStorage(AudioStorage):
@@ -123,7 +132,7 @@ class CachedAudioStorage(AudioStorage):
 
             yield from frames
         except FileNotFoundError:
-            raise KeyError(f"id_ {id_} not found in the storage")
+            raise KeyError(f"No audio with id {id_} found in the storage")
 
     def _read_meta_from_file(self, id_):
         with open(self._storage_path / f"{id_}_meta.json", 'r') as f:
@@ -133,3 +142,57 @@ class CachedAudioStorage(AudioStorage):
 class _CacheKeyError(Exception):
     def __init__(self, offset):
         self.offset = offset
+
+
+class CachedImageStorage(ImageStorage):
+    @classmethod
+    def from_config(cls, config_manager: ConfigurationManager):
+        backend_config = config_manager.get_config("cltl.backend")
+
+        return cls(backend_config.get("image_storage_path"), backend_config.get_int("image_buffer"))
+
+    def __init__(self, storage_path: str, max_buffer: int = 16):
+        self._storage_path = Path(storage_path).resolve()
+        self._cache = LRUCache(maxsize=max_buffer)
+
+    def store(self, image_id: str, image: Image):
+        if image_id in self._cache:
+            logger.warning("Image %s was already stored", image_id)
+
+        self._cache[image_id] = image
+        self._write(image_id, image)
+
+    def _write(self, image_id: str, image: Image):
+        cv2.imwrite(str(self._storage_path / f"{image_id}.png"), image.image)
+
+        with open(self._storage_path / f"{image_id}_meta.json", 'w') as f:
+            json.dump({'bounds': image.bounds}, f, default=vars)
+
+        if image.depth is not None:
+            with open(self._storage_path / f"{image_id}_depth.pkl", 'wb') as f:
+                pickle.dump(image.depth, f)
+
+    def get(self, image_id: str) -> Image:
+        try:
+            return self._cache[image_id]
+        except KeyError:
+            image = self._read(image_id)
+            self._cache[image_id] = image
+
+            return image
+
+    def _read(self, image_id: str):
+        if not os.path.isfile(self._storage_path / f"{image_id}.png"):
+            raise KeyError(f"No image with id {image_id} found in the storage")
+
+        image = cv2.imread(str(self._storage_path / f"{image_id}.png"))
+
+        with open(self._storage_path / f"{image_id}_meta.json", 'r') as f:
+            bounds = Bounds(**json.load(f)['bounds'])
+
+        depth = None
+        if os.path.isfile(self._storage_path / f"{image_id}_depth.pkl"):
+            with open(self._storage_path / f"{image_id}_depth.pkl", 'rb') as f:
+                depth = pickle.load(f)
+
+        return Image(image, bounds, depth)

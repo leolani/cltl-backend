@@ -21,7 +21,7 @@ class StorageServiceTest(unittest.TestCase):
 
     def test_storage(self):
         audio_storage = CachedAudioStorage(self.tmp_dir)
-        storage_service = StorageService(storage=audio_storage)
+        storage_service = StorageService(storage_audio=audio_storage, storage_image=None)
 
         audio = [np.random.randint(-1000, 1000, (480, 2), dtype=np.int16) for i in range(10)]
         audio_storage.store("1", audio, sampling_rate=16000)
