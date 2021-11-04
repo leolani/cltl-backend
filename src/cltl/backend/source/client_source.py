@@ -192,10 +192,7 @@ class ClientImageSource(ImageSource):
         if not self._image:
             return self._query_resolution()
 
-        try:
-            return CameraResolution(self._image.image.shape[:2])
-        except ValueError:
-            return CameraResolution.NATIVE
+        return self._image.resolution
 
     def _query_resolution(self):
         with self._session.head(self._url, stream=True) as request:

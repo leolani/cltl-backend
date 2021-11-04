@@ -202,7 +202,6 @@ class Bounds(object):
         return (self.x0, self.y0, self.x1, self.y1)
 
 
-#TODO add resolution property, depth as property
 @dataclass
 class Image:
     """
@@ -220,6 +219,13 @@ class Image:
     image: np.ndarray
     bounds: Bounds
     depth: Optional[np.ndarray] = None
+
+    @property
+    def resolution(self) -> CameraResolution:
+        try:
+            return CameraResolution(self.image.shape[:2])
+        except ValueError:
+            return CameraResolution.NATIVE
 
     def get_section(self, bounds: Bounds) -> np.ndarray:
         """

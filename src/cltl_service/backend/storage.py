@@ -94,9 +94,8 @@ class StorageService:
         def get_image(image_id: str):
             image = self._storage_image.get(image_id)
 
-            resolution_name = CameraResolution(image.image.shape[:2]).name
             response = jsonify(image)
-            response.headers['Content-Type'] = f"application/json; resolution={resolution_name}"
+            response.headers['Content-Type'] = f"application/json; resolution={image.resolution.name}"
 
             return response
 
