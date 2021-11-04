@@ -44,7 +44,8 @@ class HostServerTest(unittest.TestCase):
                                camera_resolution=resolution, camera_index=0)
         with server.app.test_client() as client:
             rv = client.get('/cam')
-            self.assertEqual("application/json", rv.headers.get("content-type"), rv.status)
+            self.assertEqual("application/json", rv.headers.get("content-type").split(";")[0], rv.status)
+            self.assertRegex(rv.headers.get("content-type"), f"resolution\\s*=\\s*{resolution.name}\\s*[;]?", rv.status)
 
             image = json.loads(rv.data)
 

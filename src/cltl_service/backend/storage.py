@@ -5,6 +5,7 @@ from flask import g as app_context
 from flask import request
 from flask.json import JSONEncoder
 
+from cltl.backend.api.camera import CameraResolution
 from cltl.backend.api.storage import AudioStorage, ImageStorage
 from cltl.backend.api.util import np_to_raw_frames
 
@@ -93,7 +94,11 @@ class StorageService:
         def get_image(image_id: str):
             image = self._storage_image.get(image_id)
 
-            return jsonify(image)
+            resolution_name = CameraResolution(image.image.shape[:2]).name
+            response = jsonify(image)
+            response.headers['Content-Type'] = f"application/json; resolution={resolution_name}"
+
+            return response
 
         @self._app.after_request
         def set_cache_control(response):

@@ -1,5 +1,6 @@
 import logging
 
+import flask
 import numpy as np
 from flask import Flask, Response, stream_with_context, json, jsonify
 from flask import g as app_context
@@ -43,10 +44,18 @@ class BackendServer:
 
         @self._app.route('/cam')
         def capture():
+            mimetype_with_resolution = f"application/json; resolution={self._camera.resolution.name}"
+
+            if flask.request.method == 'HEAD':
+                return Response(200, headers={"Content-Type": mimetype_with_resolution})
+
             with self._camera as camera:
                 image = camera.capture()
 
-            return jsonify(image)
+            response = jsonify(image)
+            response.headers["Content-Type"] = mimetype_with_resolution
+
+            return response
 
         @self._app.route('/mic')
         def stream_mic():

@@ -202,6 +202,7 @@ class Bounds(object):
         return (self.x0, self.y0, self.x1, self.y1)
 
 
+#TODO add resolution property, depth as property
 @dataclass
 class Image:
     """

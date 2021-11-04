@@ -1,5 +1,6 @@
 import json
 import logging
+import re
 from types import SimpleNamespace
 from typing import Any
 from urllib.parse import urljoin
@@ -8,6 +9,7 @@ import numpy as np
 import requests
 from cltl.combot.infra.config import ConfigurationManager
 from emissor.representation.scenario import Modality
+from flask import Response
 from requests.adapters import HTTPAdapter, BaseAdapter
 
 from cltl.backend.api.camera import Image, CameraResolution, Bounds
@@ -158,6 +160,7 @@ class ClientImageSource(ImageSource):
     def __init__(self, url: str, storage_url: str = None):
         self._url = url
         self._storage_url = storage_url
+        self._session = None
         self._image = None
 
     def connect(self):
@@ -167,11 +170,45 @@ class ClientImageSource(ImageSource):
         if self._image is not None:
             raise ValueError("Client is already in use")
 
-        session = requests.session()
+        self._session = requests.session().__enter__()
         if self._storage_url:
-            session.mount(f"{STORAGE_SCHEME}:", CltlAudioAdapter(self._storage_url))
+            self._session.mount(f"{STORAGE_SCHEME}:", CltlAudioAdapter(self._storage_url))
 
-        with session.get(self._url, stream=True) as request:
+        return self
+
+    def close(self):
+        self.__exit__(None, None, None)
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self._session.__exit__(self, exc_type, exc_val, exc_tb)
+        self._session = None
+        self._image = None
+
+    @property
+    def resolution(self) -> CameraResolution:
+        if not self._session:
+            raise ValueError("Called outside context")
+
+        if not self._image:
+            return self._query_resolution()
+
+        try:
+            return CameraResolution(self._image.image.shape[:2])
+        except ValueError:
+            return CameraResolution.NATIVE
+
+    def _query_resolution(self):
+        with self._session.head(self._url, stream=True) as request:
+            mime_type = request.headers['Content-Type']
+
+        resolution_match = re.search(r'resolution\s*=\s*(\w+)\s*[;]?', mime_type)
+        if not resolution_match:
+            raise ValueError("Resolution unknown, capture image first")
+
+        return CameraResolution[resolution_match.group(1)]
+
+    def capture(self) -> Image:
+        with self._session.get(self._url, stream=True) as request:
             if request.status_code != 200:
                 code = request.status_code
                 text = request.text
@@ -181,7 +218,7 @@ class ClientImageSource(ImageSource):
 
             self._image = self._deserialize(request.json())
 
-        return self
+        return self._image
 
     # TODO centralize
     def _deserialize(self, json_data: Any) -> Image:
@@ -190,21 +227,3 @@ class ClientImageSource(ImageSource):
         depth = np.array(json_data['depth']) if 'depth' in json_data and json_data['depth'] else None
 
         return Image(image, bounds, depth)
-
-    def close(self):
-        self.__exit__(None, None, None)
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        self._image = None
-
-    @property
-    def resolution(self) -> CameraResolution:
-        if not self._image:
-            raise ValueError("Called outside context")
-        try:
-            return CameraResolution(self._image.image.shape[:2])
-        except ValueError:
-            return CameraResolution.NATIVE
-
-    def capture(self) -> Image:
-        return self._image

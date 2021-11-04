@@ -3,7 +3,6 @@ import tempfile
 import unittest
 from threading import Thread
 
-import cv2
 import numpy as np
 from werkzeug.serving import make_server
 
@@ -94,10 +93,13 @@ class StorageServiceTest(unittest.TestCase):
         self.server.start()
 
         with ClientImageSource("http://0.0.0.0:9999/video/1") as source:
-            self.assertEqual(resolution, source.resolution)
-            np.testing.assert_array_equal(image_array, source.capture().image)
-            self.assertEqual(SYSTEM_BOUNDS, source.capture().bounds)
-            np.testing.assert_array_equal(depth_array, source.capture().depth)
+            capture = source.capture()
+            source_resolution = source.resolution
+
+        self.assertEqual(resolution, source_resolution)
+        np.testing.assert_array_equal(image_array, capture.image)
+        self.assertEqual(SYSTEM_BOUNDS, capture.bounds)
+        np.testing.assert_array_equal(depth_array, capture.depth)
 
     def test_image_client_with_custom_schema(self):
         image_storage = CachedImageStorage(self.tmp_dir)
@@ -140,9 +142,13 @@ class StorageServiceTest(unittest.TestCase):
 
         with ClientImageSource(f"{STORAGE_SCHEME}:/video/1", "http://0.0.0.0:9999") as source:
             source_resolution = source.resolution
+            self.assertEqual(resolution, source_resolution)
+
             image = source.capture()
 
-        self.assertEqual(resolution, source_resolution)
+            source_resolution = source.resolution
+            self.assertEqual(resolution, source_resolution)
+
         np.testing.assert_array_equal(image_array, image.image)
         self.assertEqual(SYSTEM_BOUNDS, image.bounds)
         np.testing.assert_array_equal(depth_array, image.depth)
