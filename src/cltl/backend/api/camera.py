@@ -16,31 +16,30 @@ logger = logging.getLogger(__name__)
 
 class CameraResolution(enum.Enum):
     """
-    Image width and height
+    Image height and width.
     """
     NATIVE = -1, -1
-    QQQQVGA = 40, 30
-    QQQVGA = 80, 60
-    QQVGA = 160, 120
-    QVGA = 320, 240
-    VGA = 640, 480
-    VGA4 = 1280, 960
-
-    @property
-    def width(self):
-        return self.value[0]
+    QQQQVGA = 30, 40
+    QQQVGA = 60, 80
+    QQVGA = 120, 160
+    QVGA = 240, 320
+    VGA = 480, 640
+    VGA4 = 960, 1280
 
     @property
     def height(self):
+        return self.value[0]
+
+    @property
+    def width(self):
         return self.value[1]
 
 
 @dataclass
 class Bounds(object):
     """
-    Rectangle Bounds Object
+    Rectangle Bounds Object.
     """
-
     x0: float
     x1: float
     y0: float
