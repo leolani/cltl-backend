@@ -8,7 +8,6 @@ from queue import Queue, Empty
 from types import SimpleNamespace
 from typing import Iterable, Union
 
-import PIL
 import cv2
 import numpy as np
 import soundfile as sf
@@ -39,6 +38,7 @@ class CachedAudioStorage(AudioStorage):
             audio = [audio]
 
         self._cache[audio_id] = Queue()
+
         for frame in audio:
             if audio_id not in self._cache_params:
                 self._cache_params[audio_id] = self._audio_params(frame, sampling_rate)

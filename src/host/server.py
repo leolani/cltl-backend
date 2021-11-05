@@ -2,6 +2,7 @@ import logging
 
 import flask
 import numpy as np
+from emissor.representation.scenario import Modality
 from flask import Flask, Response, stream_with_context, json, jsonify
 from flask import g as app_context
 from flask.json import JSONEncoder
@@ -42,7 +43,7 @@ class BackendServer:
         self._app = Flask(__name__)
         self._app.json_encoder = NumpyJSONEncoder
 
-        @self._app.route('/cam')
+        @self._app.route(f"/{Modality.VIDEO.name.lower()}")
         def capture():
             mimetype_with_resolution = f"application/json; resolution={self._camera.resolution.name}"
 
@@ -57,7 +58,7 @@ class BackendServer:
 
             return response
 
-        @self._app.route('/mic')
+        @self._app.route(f"/{Modality.AUDIO.name.lower()}")
         def stream_mic():
             def audio_stream(mic):
                 with self._mic as mic_stream:

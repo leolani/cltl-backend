@@ -51,8 +51,8 @@ class AudioBackendService:
                                     params.sampling_rate)
                         logger.info("Stored audio %s", audio_id)
                     self._mic.mute()
-                except:
-                    logger.exception("Failed to listen to mic")
+                except Exception as e:
+                    logger.warning("Failed to listen to mic: %s", e)
                     time.sleep(1)
 
         self._thread = Thread(name="cltl.backend", target=run)

@@ -3,6 +3,7 @@ import logging
 import unittest
 
 import numpy as np
+from emissor.representation.scenario import Modality
 
 from cltl.backend.api.camera import CameraResolution
 from cltl.backend.api.util import raw_frames_to_np
@@ -25,7 +26,7 @@ class HostServerTest(unittest.TestCase):
         server = BackendServer(sampling_rate=16000, channels=1, frame_size=480,
                                camera_resolution=CameraResolution.NATIVE, camera_index=0)
         with server.app.test_client() as client:
-            rv = client.get('/mic')
+            rv = client.get(f"/{Modality.AUDIO.name.lower()}")
             self.assertEqual("audio/L16;rate=16000;channels=1;frame_size=480",
                              rv.headers.get("content-type").replace(r' ', ''))
 
@@ -43,7 +44,7 @@ class HostServerTest(unittest.TestCase):
         server = BackendServer(sampling_rate=16000, channels=1, frame_size=480,
                                camera_resolution=resolution, camera_index=0)
         with server.app.test_client() as client:
-            rv = client.get('/cam')
+            rv = client.get(f"/{Modality.VIDEO.name.lower()}")
             self.assertEqual("application/json", rv.headers.get("content-type").split(";")[0], rv.status)
             self.assertRegex(rv.headers.get("content-type"), f"resolution\\s*=\\s*{resolution.name}\\s*[;]?", rv.status)
 
