@@ -195,7 +195,7 @@ class ClientImageSource(ImageSource):
         return self._image.resolution
 
     def _query_resolution(self):
-        with self._session.head(self._url, stream=True) as request:
+        with self._session.head(self._url) as request:
             mime_type = request.headers['Content-Type']
 
         resolution_match = re.search(r'resolution\s*=\s*(\w+)\s*[;]?', mime_type)
