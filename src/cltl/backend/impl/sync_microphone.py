@@ -1,6 +1,6 @@
 import contextlib
 import logging
-from typing import Generator, Iterator
+from typing import Iterator
 
 import numpy as np
 from cltl.combot.infra.resource.api import ResourceManager

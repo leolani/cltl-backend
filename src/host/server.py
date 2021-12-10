@@ -3,7 +3,7 @@ import logging
 import flask
 import numpy as np
 from emissor.representation.scenario import Modality
-from flask import Flask, Response, stream_with_context, json, jsonify
+from flask import Flask, Response, stream_with_context, jsonify
 from flask import g as app_context
 from flask.json import JSONEncoder
 

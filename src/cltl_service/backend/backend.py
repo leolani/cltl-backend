@@ -1,8 +1,8 @@
 import logging
+import time
 import uuid
 from threading import Thread
 
-import time
 from cltl.combot.infra.config import ConfigurationManager
 from cltl.combot.infra.event import EventBus, Event
 from cltl.combot.infra.util import ThreadsafeBoolean
@@ -10,7 +10,6 @@ from cltl.combot.infra.util import ThreadsafeBoolean
 from cltl.backend.api.microphone import Microphone
 from cltl.backend.api.storage import AudioStorage
 from cltl_service.backend.schema import AudioSignalStarted, AudioSignalStopped
-
 
 logger = logging.getLogger(__name__)
 

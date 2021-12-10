@@ -1,4 +1,3 @@
-import json
 import logging
 import re
 from types import SimpleNamespace
@@ -9,7 +8,6 @@ import numpy as np
 import requests
 from cltl.combot.infra.config import ConfigurationManager
 from emissor.representation.scenario import Modality
-from flask import Response
 from requests.adapters import HTTPAdapter, BaseAdapter
 
 from cltl.backend.api.camera import Image, CameraResolution, Bounds

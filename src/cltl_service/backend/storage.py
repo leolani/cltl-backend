@@ -5,7 +5,6 @@ from flask import g as app_context
 from flask import request
 from flask.json import JSONEncoder
 
-from cltl.backend.api.camera import CameraResolution
 from cltl.backend.api.storage import AudioStorage, ImageStorage
 from cltl.backend.api.util import np_to_raw_frames
 
