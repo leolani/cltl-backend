@@ -2,7 +2,7 @@ import argparse
 import logging
 
 from cltl.backend.api.camera import CameraResolution
-from host.server import BackendServer
+from cltl.backend.server import BackendServer
 
 logger = logging.getLogger(__name__)
 

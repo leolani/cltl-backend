@@ -14,7 +14,7 @@ import soundfile
 
 from cltl.backend.api.camera import CameraResolution
 from cltl.backend.source.client_source import ClientAudioSource, ClientImageSource
-from host.server import BackendServer
+from cltl.backend.server import BackendServer
 
 logger = logging.getLogger(__name__)
 

@@ -8,7 +8,7 @@ from emissor.representation.scenario import Modality
 from cltl.backend.api.camera import CameraResolution
 from cltl.backend.api.util import raw_frames_to_np
 from cltl.backend.source.cv2_source import SYSTEM_BOUNDS
-from host.server import BackendServer
+from cltl.backend.server import BackendServer
 
 
 logging.basicConfig(
