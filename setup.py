@@ -34,7 +34,6 @@ setup(
             "flask"
         ],
         "service": [
-            "cltl.backend",
             "cltl.combot",
             "emissor",
             "flask",
