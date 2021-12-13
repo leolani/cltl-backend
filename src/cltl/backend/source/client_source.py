@@ -118,6 +118,9 @@ class ClientAudioSource(AudioSource):
 
     @property
     def content(self):
+        if not self._request:
+            raise ValueError("No request, call inside a context manager!")
+
         return self._request.iter_content(self._parameters.bytes_per_frame)
 
     @property
@@ -203,6 +206,9 @@ class ClientImageSource(ImageSource):
         return CameraResolution[resolution_match.group(1)]
 
     def capture(self) -> Image:
+        if not self._session:
+            raise ValueError("session not started, call capture inside a context manager!")
+
         with self._session.get(self._url, stream=True) as request:
             if request.status_code != 200:
                 code = request.status_code
@@ -218,7 +224,10 @@ class ClientImageSource(ImageSource):
     # TODO centralize
     def _deserialize(self, json_data: Any) -> Image:
         image = np.array(json_data['image'])
-        bounds = Bounds(**json_data['bounds'])
+        try:
+            bounds = Bounds(**json_data['bounds'])
+        except TypeError:
+            bounds = Bounds(*json_data['bounds'])
         depth = np.array(json_data['depth']) if 'depth' in json_data and json_data['depth'] else None
 
         return Image(image, bounds, depth)
