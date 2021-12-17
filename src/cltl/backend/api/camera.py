@@ -343,6 +343,13 @@ class Camera(abc.ABC):
         raise NotImplementedError()
 
     @contextmanager
+    def capture(self) -> Image:
+        """
+        Retrieve an Image from the camera.
+        """
+        raise NotImplementedError()
+
+    @contextmanager
     def record(self) -> Iterable[Image]:
         """
         Retrieve stream of Images from the camera.

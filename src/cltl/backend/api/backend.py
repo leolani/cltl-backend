@@ -1,5 +1,6 @@
 import logging
 
+from cltl.backend.api.camera import Camera
 from cltl.backend.api.microphone import Microphone
 from cltl.backend.api.text_to_speech import TextToSpeech
 
@@ -8,19 +9,27 @@ logger = logging.getLogger(__name__)
 
 class Backend:
     """
-    Abstract Backend on which all Backends are based
+    Central class providing all backend functionality.
 
     Exposes
     :class:`~cltl.backend.api.microphone.Microphone`
+    :class:`~cltl.backend.api.camera.Camera`
+    :class:`~cltl.backend.api.text_to_speech.TextToSpeech`
 
     Parameters
     ----------
     microphone: Microphone
         Backend :class:`~cltl.backend.api.microphone.Microphone`
+    camera: Camera
+        Backend :class:`~cltl.backend.api.camera.Camera`
+    tts: TextToSpeech
+        Backend :class:`~cltl.backend.api.tts.TextToSpeech`
     """
 
-    def __init__(self, microphone: Microphone):
+    def __init__(self, microphone: Microphone, camera: Camera, tts: TextToSpeech):
         self._microphone = microphone
+        self._camera = camera
+        self._tts = tts
 
     def __enter__(self):
         self.start()
@@ -31,6 +40,10 @@ class Backend:
 
     def start(self):
         if self._microphone:
+            self._microphone.start()
+        if self._camera:
+            self._camera.start()
+        if self._tts.start():
             self._microphone.start()
 
     def stop(self):
@@ -53,6 +66,18 @@ class Backend:
         Microphone
         """
         return self._microphone
+
+    @property
+    def camera(self) -> Camera:
+        """
+        Reference to :class:`~cltl.backend.api.microphone.Camera`
+
+        Returns
+        -------
+        Camera
+        """
+        return self._camera
+
 
     @property
     def text_to_speech(self) -> TextToSpeech:

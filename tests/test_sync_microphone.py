@@ -16,7 +16,7 @@ logger.setLevel(logging.DEBUG)
 
 
 def wait(lock: threading.Event):
-    if not lock.wait(699):
+    if not lock.wait(1):
         raise unittest.TestCase.failureException("Latch timed out")
 
 
@@ -70,9 +70,10 @@ class SynchronizedMicrophoneTest(unittest.TestCase):
         self.mic.stop()
 
     def test_listen(self):
-        self.assertFalse(self.mic.muted)
+        self.assertTrue(self.mic.muted)
 
         with self.mic.listen() as (mic_audio, params):
+            self.assertFalse(self.mic.muted)
             audio = [frame for frame in mic_audio]
             parameters = params
 
@@ -105,9 +106,10 @@ class SynchronizedMicrophoneTest(unittest.TestCase):
         self.mic.start()
         mute_thread.start()
 
-        self.assertFalse(self.mic.muted)
+        self.assertTrue(self.mic.muted)
 
         with self.mic.listen() as (mic_audio, params):
+            self.assertFalse(self.mic.muted)
             audio = [frame for frame in mic_audio]
 
         self.assertEqual(7, len(audio))

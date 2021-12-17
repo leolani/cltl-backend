@@ -47,6 +47,7 @@ class SynchronizedMicrophone(Microphone):
         self._resource_manager.provide_resource(MIC_RESOURCE_NAME)
         self._audio_lock = self._resource_manager.get_read_lock(AUDIO_RESOURCE_NAME)
         self._mic_lock = self._resource_manager.get_write_lock(MIC_RESOURCE_NAME)
+        self._mic_lock.acquire()
 
     def stop(self):
         """

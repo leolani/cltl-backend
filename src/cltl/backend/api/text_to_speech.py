@@ -1,24 +1,26 @@
 import abc
 import logging
+from typing import Any
+
 
 logger = logging.getLogger(__name__)
 
 
 class TextToSpeech(abc.ABC):
-    def __enter__(self):
+    def __enter__(self) -> Any:
         self.start()
         return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
+    def __exit__(self, exc_type, exc_val, exc_tb) -> None:
         self.stop()
 
-    def start(self):
+    def start(self) -> Any:
         raise NotImplementedError()
 
-    def stop(self):
+    def stop(self) -> None:
         raise NotImplementedError()
 
-    def say(self, text: str):
+    def say(self, text: str) -> None:
         raise NotImplementedError()
 
     @property
