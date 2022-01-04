@@ -75,6 +75,8 @@ class CachedAudioStorage(AudioStorage):
         with open(self._storage_path / f"{id_}_meta.json", 'w') as f:
             json.dump(metadata, f, default=vars)
 
+        logger.debug("Stored audio files %s", self._storage_path / f"{id_}")
+
     def get(self, id_: str, offset: int = 0, length: int = -1) -> (Iterable[np.array], AudioParameters):
         try:
             parameters = self._cache_params[id_]

@@ -9,11 +9,13 @@ from typing import Iterator, Any
 import numpy as np
 from cltl.combot.infra.event.api import Event as CombotEvent
 from cltl.combot.infra.event.memory import SynchronousEventBus
+from cltl.combot.infra.resource.threaded import ThreadedResourceManager
 
+from cltl.backend.api.backend import Backend
 from cltl.backend.impl.cached_storage import CachedAudioStorage
 from cltl.backend.impl.sync_microphone import SimpleMicrophone
 from cltl.backend.spi.audio import AudioSource
-from cltl_service.backend.backend import AudioBackendService
+from cltl_service.backend.backend import BackendService
 from cltl_service.backend.schema import AudioSignalStarted, AudioSignalStopped
 
 DEBUG = 0
@@ -97,9 +99,11 @@ class BackendTest(unittest.TestCase):
 
         audio_source = TestAudioSource(audio_generator())
 
+        backend = Backend(SimpleMicrophone(audio_source), None, None)
         audio_storage = CachedAudioStorage(self.tmp_dir)
         event_bus = SynchronousEventBus()
-        self.backend_service = AudioBackendService('mic_topic', SimpleMicrophone(audio_source), audio_storage, event_bus)
+        resource_manager = ThreadedResourceManager()
+        self.backend_service = BackendService('mic_topic', 'tts_topic', backend, audio_storage, event_bus, resource_manager)
 
         audio_storage.store("1", audio, sampling_rate=16000)
         self.backend_service.start()

@@ -37,7 +37,7 @@ class TextOutputTTS(TextToSpeech):
 
     @property
     def language(self) -> str:
-        self._language
+        return self._language
 
 
 

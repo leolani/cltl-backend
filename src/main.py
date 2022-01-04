@@ -8,13 +8,14 @@ from flask import Flask
 from werkzeug.middleware.dispatcher import DispatcherMiddleware
 from werkzeug.serving import run_simple
 
+from cltl.backend.api.backend import Backend
 from cltl.backend.api.microphone import Microphone
 from cltl.backend.api.storage import AudioStorage
 from cltl.backend.impl.cached_storage import CachedAudioStorage
 from cltl.backend.impl.sync_microphone import SimpleMicrophone
 from cltl.backend.source.client_source import ClientAudioSource
 from cltl.backend.spi.audio import AudioSource
-from cltl_service.backend.backend import AudioBackendService
+from cltl_service.backend.backend import BackendService
 from cltl_service.backend.storage import StorageService
 
 logger = logging.getLogger(__name__)
@@ -44,8 +45,13 @@ class ApplicationContainer(KombuEventBusContainer, K8LocalConfigurationContainer
 
     @property
     @singleton
-    def backend_service(self) -> AudioBackendService:
-        return AudioBackendService(self.microphone, self.audio_storage, self.event_bus)
+    def backend_service(self) -> Backend:
+        return Backend(self.microphone, self.camera, self.tts)
+
+    @property
+    @singleton
+    def backend_service(self) -> BackendService:
+        return BackendService(self.microphone, self.audio_storage, self.event_bus)
 
     @property
     @singleton

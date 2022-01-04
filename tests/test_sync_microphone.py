@@ -84,7 +84,7 @@ class SynchronizedMicrophoneTest(unittest.TestCase):
 
         self.assertEqual(AudioParameters(200, 1, 2, 2), parameters)
 
-        self.assertFalse(self.mic.muted)
+        self.assertTrue(self.mic.muted)
 
     def test_mute(self):
         audio_running = threading.Event()

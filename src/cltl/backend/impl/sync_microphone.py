@@ -1,6 +1,6 @@
 import contextlib
 import logging
-from typing import Iterator
+from typing import Iterator, Iterable
 
 import numpy as np
 from cltl.combot.infra.resource.api import ResourceManager
@@ -75,7 +75,7 @@ class SynchronizedMicrophone(Microphone):
         return self._mic_lock.locked
 
     @contextlib.contextmanager
-    def listen(self) -> Iterator[np.array]:
+    def listen(self) -> [Iterable[np.ndarray], AudioParameters]:
         """
         Provide audio input from the microphone.
 
@@ -104,6 +104,8 @@ class SynchronizedMicrophone(Microphone):
         with self._source as audio:
             yield self._get_audio(audio), self.parameters
 
+        self._try_mute()
+
     def _get_audio(self, audio) -> Iterator[np.array]:
         frame = False
         audio_frames = iter(audio)
@@ -126,27 +128,36 @@ class SynchronizedMicrophone(Microphone):
             return None
 
     def _try_unmute(self):
-        logger.debug("Try to unmute microphone")
+        logger.debug("Try to unmute microphone (lock interrupted: %s, interrupted: %s)", self._audio_lock.interrupted, self._interrupt.value)
         if self._audio_lock.acquire(blocking=True, timeout=self._timeout_interval):
             self._audio_lock.interrupt_writers(False)
             if self._mic_lock.locked:
                 self._mic_lock.release()
+
+            self._interrupt.value = False
+
             logger.info("Microphone unmuted")
+
             return True
 
         self._audio_lock.interrupt_writers()
+
         return False
 
     def _try_mute(self):
-        logger.debug("Try to mute microphone")
+        logger.debug("Try to mute microphone (lock interrupted: %s, interrupted: %s)", self._audio_lock.interrupted, self._interrupt.value)
         if self._mic_lock.acquire(blocking=True, timeout=self._timeout_interval):
             self._mic_lock.interrupt_readers(False)
             if self._audio_lock.locked:
                 self._audio_lock.release()
+            self._interrupt.value = False
+
             logger.info("Microphone muted")
+
             return True
 
         self._mic_lock.interrupt_readers()
+
         return False
 
 

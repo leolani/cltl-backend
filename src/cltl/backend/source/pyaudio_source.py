@@ -95,6 +95,7 @@ class PyAudioSource(AudioSource):
 
     def __next__(self):
         if not self._active:
+            logger.debug("Stopped audio iteration")
             raise StopIteration()
 
         data = self._stream.read(self._frame_size, exception_on_overflow=False)

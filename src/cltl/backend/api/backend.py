@@ -43,11 +43,16 @@ class Backend:
             self._microphone.start()
         if self._camera:
             self._camera.start()
-        if self._tts.start():
-            self._microphone.start()
+        if self._tts:
+            self._tts.start()
 
     def stop(self):
-        self._stop_safe(self._microphone)
+        if self._microphone:
+            self._stop_safe(self._microphone)
+        if self._camera:
+            self._stop_safe(self._camera)
+        if self._tts:
+            self._stop_safe(self._tts)
 
     def _stop_safe(self, component):
         if component:
@@ -88,4 +93,4 @@ class Backend:
         -------
         TextToSpeech
         """
-        return self._text_to_speech
+        return self._tts
