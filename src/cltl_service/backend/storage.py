@@ -87,7 +87,7 @@ class StorageService:
 
         @self._app.route(f"/{Modality.VIDEO.name.lower()}/<image_id>", methods=['PUT'])
         def store_image(image_id: str):
-            return Response("Currently only storing audio directly from the microphone is supported", status=501)
+            return Response("Currently only storing images directly from the camera is supported", status=501)
 
         @self._app.route(f"/{Modality.VIDEO.name.lower()}/<image_id>")
         def get_image(image_id: str):

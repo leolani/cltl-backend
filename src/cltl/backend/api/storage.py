@@ -11,7 +11,7 @@ STORAGE_SCHEME = "cltl-storage"
 
 # TODO rename id to identifier
 class AudioStorage(abc.ABC):
-    def store(self, id: str, audio: Union[np.ndarray, List[np.ndarray]], sampling_rate: int):
+    def store(self, id: str, audio: Union[np.ndarray, Iterable[np.ndarray]], sampling_rate: int):
         raise NotImplementedError()
 
     def get(self, id: str, offset: int = 0, length: int = -1) -> (Iterable[np.ndarray], AudioParameters):

@@ -6,8 +6,9 @@ from threading import Thread, Event
 
 import numpy as np
 
+from cltl.backend.api.camera import Image, CameraResolution, Bounds
 from cltl.backend.api.storage import AudioParameters
-from cltl.backend.impl.cached_storage import CachedAudioStorage
+from cltl.backend.impl.cached_storage import CachedAudioStorage, CachedImageStorage
 
 
 def wait(lock: Event):
@@ -16,7 +17,7 @@ def wait(lock: Event):
         raise unittest.TestCase.failureException("Latch timed out")
 
 
-class SynchronizedMicrophoneTest(unittest.TestCase):
+class CachedAudioStorageTest(unittest.TestCase):
     def setUp(self):
         self.tmp_dir = tempfile.mkdtemp()
         self.storage = CachedAudioStorage(self.tmp_dir)
@@ -274,3 +275,27 @@ class SynchronizedMicrophoneTest(unittest.TestCase):
         self.assertEqual(AudioParameters(16000, 2, 400, 2), params)
 
         write_thread.join(timeout=1)
+
+
+class CachedImageStorageTest(unittest.TestCase):
+    def setUp(self):
+        self.tmp_dir = tempfile.mkdtemp()
+        self.storage = CachedImageStorage(self.tmp_dir)
+
+    def tearDown(self):
+        shutil.rmtree(self.tmp_dir)
+
+    def test_parameters_from_cache(self):
+        bounds = Bounds(-0.55, -0.41 + np.pi / 2, 0.55, 0.41 + np.pi / 2)
+        resolution = CameraResolution.QQQVGA
+
+        image_array = np.random.randint(0, 256, (resolution.height, resolution.width, 3), dtype=np.uint8)
+        depth_array = np.random.randint(0, 256, (resolution.height, resolution.width), dtype=np.uint8)
+        image = Image(image_array, bounds, depth_array)
+
+        self.storage.store("image1", image)
+        stored = self.storage.get("image1")
+
+        np.testing.assert_array_equal(image_array, stored.image)
+        np.testing.assert_array_equal(bounds, stored.bounds)
+        np.testing.assert_array_equal(depth_array, stored.depth)

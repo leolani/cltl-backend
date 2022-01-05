@@ -36,7 +36,7 @@ class CameraResolution(enum.Enum):
 
 
 @dataclass
-class Bounds(object):
+class Bounds:
     """
     Rectangle Bounds Object.
     """
@@ -335,7 +335,17 @@ class Camera(abc.ABC):
         pass
 
     @property
-    def rate(self) -> int:
+    def rate(self) -> float:
+        """Rate of the camera recording.
+
+        Returns
+        -------
+        float
+            Images per seconds recorded by the Camera.
+
+            If a negative rate is returned, only capturing images is supported,
+            if a zero is returned, the camera will record at the maximum available rate.
+        """
         raise NotImplementedError()
 
     @property
@@ -353,6 +363,9 @@ class Camera(abc.ABC):
     def record(self) -> Iterable[Image]:
         """
         Retrieve stream of Images from the camera.
+
+        Images are recorded with the rate returned by `rate`. The rate may be
+        influenced by the speed at which the returned iterable is consumed.
         """
         raise NotImplementedError()
 
