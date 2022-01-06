@@ -165,7 +165,8 @@ class CachedImageStorage(ImageStorage):
         self._write(image_id, image)
 
     def _write(self, image_id: str, image: Image):
-        cv2.imwrite(str(self._storage_path / f"{image_id}.png"), image.image)
+        cv2.imwrite(str(self._storage_path / f"{image_id}.png"),
+                    cv2.cvtColor(image.image, cv2.COLOR_RGB2BGR))
 
         with open(self._storage_path / f"{image_id}_meta.json", 'w') as f:
             json.dump({'bounds': image.bounds}, f, default=vars)
@@ -188,6 +189,7 @@ class CachedImageStorage(ImageStorage):
             raise KeyError(f"No image with id {image_id} found in the storage")
 
         image = cv2.imread(str(self._storage_path / f"{image_id}.png"))
+        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
         with open(self._storage_path / f"{image_id}_meta.json", 'r') as f:
             bounds = Bounds(**json.load(f)['bounds'])
