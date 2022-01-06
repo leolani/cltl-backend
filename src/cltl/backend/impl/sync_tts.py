@@ -22,7 +22,7 @@ class TextOutputTTS(TextToSpeech):
         return self._text_output.__enter__()
 
     def stop(self):
-        self._text_output.__exit__()
+        self._text_output.__exit__(None, None, None)
 
     def say(self, text: str):
         self._is_talking.value = True

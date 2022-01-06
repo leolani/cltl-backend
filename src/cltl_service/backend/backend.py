@@ -99,14 +99,9 @@ class BackendService:
             return
 
         def run():
-            while self._running.value:
+            while self._running:
                 try:
-                    with self._backend.camera as camera:
-                        for image in camera.record():
-                            image_id = str(uuid.uuid4())
-                            self._image_storage.store(image_id, image)
-                            self._publish_image_event(image_id, image)
-                            logger.info("Stored image %s", image_id)
+                    self._record_images()
                 except Exception as e:
                     logger.warning("Failed to capture to image: %s", e)
                     time.sleep(1)
@@ -126,7 +121,7 @@ class BackendService:
             raise ValueError("Mic already started")
 
         def run():
-            while self._running.value:
+            while self._running:
                 try:
                     audio_id = str(uuid.uuid4())
                     with self._backend.microphone.listen() as (audio, params):
@@ -145,9 +140,20 @@ class BackendService:
         if not self._mic_thread:
             return
 
-        self._running.value = False
         self._mic_thread.join()
         self._mic_thread = None
+
+    def _record_images(self):
+        with self._backend.camera as camera:
+            for image in camera.record():
+                if not self._running:
+                    logger.debug("Stopped recording")
+                    return
+
+                image_id = str(uuid.uuid4())
+                self._image_storage.store(image_id, image)
+                self._publish_image_event(image_id, image)
+                logger.info("Stored image %s", image_id)
 
     def _publish_image_event(self, image_id: str, image: Image):
         image_signal = ImageSignal(image_id, MultiIndex(image_id, image.bounds.to_tuple()),
@@ -159,6 +165,8 @@ class BackendService:
         started = False
         samples = 0
         for frame in audio:
+            if not self._running:
+                break
             if frame is None:
                 continue
             if not started:

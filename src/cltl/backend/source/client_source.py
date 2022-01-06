@@ -181,7 +181,8 @@ class ClientImageSource(ImageSource):
         self.__exit__(None, None, None)
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        self._session.__exit__(self, exc_type, exc_val, exc_tb)
+        if self._session:
+            self._session.__exit__(self, exc_type, exc_val, exc_tb)
         self._session = None
         self._image = None
 
@@ -223,11 +224,11 @@ class ClientImageSource(ImageSource):
 
     # TODO centralize
     def _deserialize(self, json_data: Any) -> Image:
-        image = np.array(json_data['image'])
+        image = np.array(json_data['image'], dtype=np.uint8)
         try:
             bounds = Bounds(**json_data['bounds'])
         except TypeError:
             bounds = Bounds(*json_data['bounds'])
-        depth = np.array(json_data['depth']) if 'depth' in json_data and json_data['depth'] else None
+        depth = np.array(json_data['depth'], dtype=np.uint8) if 'depth' in json_data and json_data['depth'] else None
 
         return Image(image, bounds, depth)

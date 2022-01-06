@@ -12,7 +12,7 @@ from cltl.combot.infra.event.memory import SynchronousEventBus
 from cltl.combot.infra.resource.threaded import ThreadedResourceManager
 
 from cltl.backend.api.backend import Backend
-from cltl.backend.impl.cached_storage import CachedAudioStorage
+from cltl.backend.impl.cached_storage import CachedAudioStorage, CachedImageStorage
 from cltl.backend.impl.sync_microphone import SimpleMicrophone
 from cltl.backend.spi.audio import AudioSource
 from cltl_service.backend.backend import BackendService
@@ -101,9 +101,11 @@ class BackendTest(unittest.TestCase):
 
         backend = Backend(SimpleMicrophone(audio_source), None, None)
         audio_storage = CachedAudioStorage(self.tmp_dir)
+        image_storage = CachedImageStorage(self.tmp_dir)
         event_bus = SynchronousEventBus()
         resource_manager = ThreadedResourceManager()
-        self.backend_service = BackendService('mic_topic', 'tts_topic', backend, audio_storage, event_bus, resource_manager)
+        self.backend_service = BackendService('mic_topic', 'image_topic', 'tts_topic', -1,
+                                              backend, audio_storage, image_storage, event_bus, resource_manager)
 
         audio_storage.store("1", audio, sampling_rate=16000)
         self.backend_service.start()
