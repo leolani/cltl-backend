@@ -1,52 +1,56 @@
 from dataclasses import dataclass
-from typing import List
+from typing import Generic, TypeVar
 
-from emissor.representation.scenario import Modality
+from emissor.representation.scenario import Modality, AudioSignal, TextSignal, ImageSignal, Signal
 
 from cltl.backend.api.storage import AudioParameters
 
 
+S = TypeVar('S', bound=Signal)
+
+
 @dataclass
-class SignalEvent:
+class SignalEvent(Generic[S]):
     type: str
-    signal_id: str
-    timestamp: float
     modality: Modality
-    files: List[str]
+    signal: S
 
 
 @dataclass
-class SignalStarted(SignalEvent):
+class SignalStarted(Generic[S], SignalEvent[S]):
     pass
 
 
 @dataclass
-class SignalStopped(SignalEvent):
+class SignalStopped(Generic[S], SignalEvent[S]):
     pass
 
 
 @dataclass
-class TextSignalEvent(SignalEvent):
-    text: str
-
+class TextSignalEvent(SignalEvent[TextSignal]):
     @classmethod
-    def create(cls, signal_id: str, timestamp: float, text: str, files: List[str] = []):
-        return cls(cls.__name__, signal_id, timestamp, Modality.TEXT, files, text)
+    def create(cls, signal: TextSignal):
+        return cls(cls.__name__, Modality.TEXT, signal)
 
 
 @dataclass
-class AudioSignalStarted(SignalStarted):
+class ImageSignalEvent(SignalEvent[ImageSignal]):
+    @classmethod
+    def create(cls, signal: ImageSignal):
+        return cls(cls.__name__, Modality.IMAGE, signal)
+
+
+@dataclass
+class AudioSignalStarted(SignalStarted[AudioSignal]):
     parameters: AudioParameters
 
     @classmethod
-    def create(cls, signal_id: str, timestamp: float, files: List[str], parameters: AudioParameters):
-        return cls(cls.__name__, signal_id, timestamp, Modality.AUDIO, files, parameters)
+    def create(cls, signal: AudioSignal, parameters: AudioParameters):
+        return cls(cls.__name__, Modality.AUDIO, signal, parameters)
 
 
 @dataclass
-class AudioSignalStopped(SignalStopped):
-    length: int
-
+class AudioSignalStopped(SignalStopped[AudioSignal]):
     @classmethod
-    def create(cls, signal_id: str, timestamp: float, length: int):
-        return cls(cls.__name__, signal_id, timestamp, Modality.AUDIO, None, length)
+    def create(cls, signal: AudioSignal):
+        return cls(cls.__name__, Modality.AUDIO, signal)

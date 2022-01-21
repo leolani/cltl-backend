@@ -1,18 +1,20 @@
 import logging
-import time
 import uuid
 from threading import Thread
+
+import time
 
 from cltl.combot.infra.config import ConfigurationManager
 from cltl.combot.infra.event import EventBus, Event
 from cltl.combot.infra.resource import ResourceManager
 from cltl.combot.infra.topic_worker import TopicWorker
 from cltl.combot.infra.util import ThreadsafeBoolean
-from emissor.representation.container import MultiIndex
-from emissor.representation.scenario import ImageSignal, Modality
+from cltl.combot.infra.time_util import timestamp_now
+from emissor.representation.scenario import AudioSignal, ImageSignal
 
 from cltl.backend.api.backend import Backend
 from cltl.backend.api.camera import Image
+from cltl.backend.api.microphone import AudioParameters
 from cltl.backend.api.storage import AudioStorage, ImageStorage
 from cltl_service.backend.schema import AudioSignalStarted, AudioSignalStopped
 
@@ -47,6 +49,9 @@ class BackendService:
         self._backend = backend
         self._running = ThreadsafeBoolean()
 
+        # TODO
+        self._scenario_id = None
+
         self._mic_thread = None
         self._image_thread = None
         self._topic_worker = None
@@ -61,6 +66,9 @@ class BackendService:
         return None
 
     def start(self):
+        # TODO
+        self._scenario_id = str(uuid.uuid4())
+
         self._running.value = True
 
         self._backend.start()
@@ -69,6 +77,9 @@ class BackendService:
         self._start_tts()
 
     def stop(self):
+        # TODO
+        self._scenario_id = None
+
         self._running.value = False
 
         self._stop_tts()
@@ -129,8 +140,12 @@ class BackendService:
                                                   self._audio_with_events(audio_id, audio, params),
                                                   params.sampling_rate)
                         logger.info("Stored audio %s", audio_id)
-                except Exception as e:
+                except IOError as e:
+                    # Log ConnectionErrors as warnings, those may occur especially during start-up
                     logger.warning("Failed to listen to mic: %s", e)
+                    time.sleep(1)
+                except Exception as e:
+                    logger.exception("Failed to listen to mic: %s", e)
                     time.sleep(1)
 
         self._mic_thread = Thread(name="cltl.backend.mic", target=run)
@@ -156,8 +171,7 @@ class BackendService:
                 logger.info("Stored image %s", image_id)
 
     def _publish_image_event(self, image_id: str, image: Image):
-        image_signal = ImageSignal(image_id, MultiIndex(image_id, image.bounds.to_tuple()),
-                                   None, Modality.IMAGE, None, [f"cltl-storage:image/{image_id}"], [])
+        image_signal = self._create_image_signal(image_id, image)
         event = Event.for_payload(image_signal)
         self._event_bus.publish(self._image_topic, event)
 
@@ -170,8 +184,8 @@ class BackendService:
             if frame is None:
                 continue
             if not started:
-                files = [f"cltl-storage:audio/{audio_id}"]
-                started = AudioSignalStarted.create(audio_id, time.time(), files, parameters)
+                signal = self._create_audio_signal(audio_id, parameters, start=timestamp_now())
+                started = AudioSignalStarted.create(signal, parameters)
                 event = Event.for_payload(started)
                 self._event_bus.publish(self._mic_topic, event)
 
@@ -179,10 +193,22 @@ class BackendService:
             yield frame
 
         if started:
-            stopped = AudioSignalStopped.create(audio_id, time.time(), samples)
+            signal = self._create_audio_signal(audio_id, parameters, length=samples, stop=timestamp_now())
+            stopped = AudioSignalStopped.create(signal)
             event = Event.for_payload(stopped)
             self._event_bus.publish(self._mic_topic, event)
 
     def _process_tts(self, event: Event):
         logger.info("Process TTS event %s", event.payload)
-        self._backend.text_to_speech.say(event.payload.text)
+        self._backend.text_to_speech.say(event.payload.signal.text)
+
+    def _create_audio_signal(self, audio_id: str, parameters: AudioParameters,
+                            start: int = None, stop: int = None, length: int = None):
+        return AudioSignal.for_scenario(self._scenario_id, start, stop,
+                                        f"cltl-storage:audio/{audio_id}",
+                                        length, parameters.channels, signal_id=audio_id)
+
+    def _create_image_signal(self, image_id, image):
+        return ImageSignal.for_scenario(self._scenario_id, timestamp_now(), timestamp_now(),
+                                        f"cltl-storage:image/{image_id}",
+                                        image.bounds.to_tuple(), signal_id=image_id)

@@ -2,7 +2,6 @@ import json
 import logging
 import os.path
 import pickle
-import time
 from pathlib import Path
 from queue import Queue, Empty
 from types import SimpleNamespace
@@ -13,6 +12,7 @@ import numpy as np
 import soundfile as sf
 from cachetools import LRUCache
 from cltl.combot.infra.config import ConfigurationManager
+from cltl.combot.infra.time_util import timestamp_now
 
 from cltl.backend.api.camera import Image, Bounds
 from cltl.backend.api.storage import AudioStorage, AudioParameters, ImageStorage
@@ -71,7 +71,7 @@ class CachedAudioStorage(AudioStorage):
 
         sf.write(str(self._storage_path / f"{id_}.wav"), data, sampling_rate)
 
-        metadata = {"timestamp": time.time(), "parameters": self._cache_params[id_]}
+        metadata = {"timestamp": timestamp_now(), "parameters": self._cache_params[id_]}
         with open(self._storage_path / f"{id_}_meta.json", 'w') as f:
             json.dump(metadata, f, default=vars)
 
