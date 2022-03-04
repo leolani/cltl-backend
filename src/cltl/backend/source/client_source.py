@@ -153,7 +153,7 @@ class ClientImageSource(ImageSource):
     def from_config(cls, config_manager: ConfigurationManager, url: str = None):
         backend_config = config_manager.get_config("cltl.backend")
 
-        url = url if url else f"{backend_config.get('server_url')}/{Modality.VIDEO.name.lower()}"
+        url = url if url else f"{backend_config.get('server_url')}/{Modality.IMAGE.name.lower()}"
         storage_url = backend_config.get('storage_url')
 
         return cls(url, f"{storage_url}")

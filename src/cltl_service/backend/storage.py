@@ -85,11 +85,11 @@ class StorageService:
                 except:
                     pass
 
-        @self._app.route(f"/{Modality.VIDEO.name.lower()}/<image_id>", methods=['PUT'])
+        @self._app.route(f"/{Modality.IMAGE.name.lower()}/<image_id>", methods=['PUT'])
         def store_image(image_id: str):
             return Response("Currently only storing images directly from the camera is supported", status=501)
 
-        @self._app.route(f"/{Modality.VIDEO.name.lower()}/<image_id>")
+        @self._app.route(f"/{Modality.IMAGE.name.lower()}/<image_id>")
         def get_image(image_id: str):
             image = self._storage_image.get(image_id)
 

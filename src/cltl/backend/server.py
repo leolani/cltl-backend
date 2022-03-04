@@ -43,7 +43,7 @@ class BackendServer:
         self._app = Flask(__name__)
         self._app.json_encoder = NumpyJSONEncoder
 
-        @self._app.route(f"/{Modality.VIDEO.name.lower()}")
+        @self._app.route(f"/{Modality.IMAGE.name.lower()}")
         def capture():
             mimetype_with_resolution = f"application/json; resolution={self._camera.resolution.name}"
 
