@@ -34,6 +34,10 @@ class CameraResolution(enum.Enum):
     def width(self):
         return self.value[1]
 
+    @property
+    def bounds(self):
+        return Bounds(0, self.width, 0, self.height)
+
 
 @dataclass
 class Bounds:
@@ -191,7 +195,7 @@ class Bounds:
         """
         return Bounds(self.x0 * x_scale, self.y0 * y_scale, self.x1 * x_scale, self.y1 * y_scale)
 
-    def to_tuple(self) -> Tuple[float, float, float, float]:
+    def to_diagonal(self) -> Tuple[float, float, float, float]:
         """
         Export Bounds as List
 
@@ -217,8 +221,12 @@ class Image:
         Image Depth (height, width) as Numpy Array
     """
     image: np.ndarray
-    bounds: Bounds
+    view: Tuple[float, float, float, float]
     depth: Optional[np.ndarray] = None
+
+    @property
+    def bounds(self) -> Bounds:
+        return self.resolution.bounds
 
     @property
     def resolution(self) -> CameraResolution:
@@ -286,8 +294,8 @@ class Image:
         -------
         direction: Tuple[float, float]
         """
-        return (self.bounds.x0 + coordinates[0] * self.bounds.width,
-                self.bounds.y0 + coordinates[1] * self.bounds.height)
+        return (self.view.x0 + coordinates[0] * self.view.width,
+                self.view.y0 + coordinates[1] * self.view.height)
 
     def frustum(self, depth_min: float, depth_max: float) -> np.ndarray:
         """
@@ -307,16 +315,16 @@ class Image:
         """
         return np.array([
             # Near Viewing Plane
-            [spherical2cartesian(self.bounds.x0, self.bounds.y0, depth_min),
-            spherical2cartesian(self.bounds.x0, self.bounds.y1, depth_min),
-            spherical2cartesian(self.bounds.x1, self.bounds.y1, depth_min),
-            spherical2cartesian(self.bounds.x1, self.bounds.y0, depth_min)],
+            [spherical2cartesian(self.view.x0, self.view.y0, depth_min),
+            spherical2cartesian(self.view.x0, self.view.y1, depth_min),
+            spherical2cartesian(self.view.x1, self.view.y1, depth_min),
+            spherical2cartesian(self.view.x1, self.view.y0, depth_min)],
 
             # Far Viewing Plane
-            [spherical2cartesian(self.bounds.x0, self.bounds.y0, depth_max),
-            spherical2cartesian(self.bounds.x0, self.bounds.y1, depth_max),
-            spherical2cartesian(self.bounds.x1, self.bounds.y1, depth_max),
-            spherical2cartesian(self.bounds.x1, self.bounds.y0, depth_max)]
+            [spherical2cartesian(self.view.x0, self.view.y0, depth_max),
+            spherical2cartesian(self.view.x0, self.view.y1, depth_max),
+            spherical2cartesian(self.view.x1, self.view.y1, depth_max),
+            spherical2cartesian(self.view.x1, self.view.y0, depth_max)]
         ])
 
 

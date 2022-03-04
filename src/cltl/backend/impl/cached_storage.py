@@ -169,7 +169,7 @@ class CachedImageStorage(ImageStorage):
                     cv2.cvtColor(image.image, cv2.COLOR_RGB2BGR))
 
         with open(self._storage_path / f"{image_id}_meta.json", 'w') as f:
-            json.dump({'bounds': image.bounds}, f, default=vars)
+            json.dump({'bounds': image.bounds.to_diagonal(), 'view': image.view}, f, default=vars)
 
         if image.depth is not None:
             with open(self._storage_path / f"{image_id}_depth.pkl", 'wb') as f:

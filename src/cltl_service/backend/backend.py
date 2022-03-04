@@ -1,22 +1,20 @@
 import logging
-import uuid
-from threading import Thread
-
 import time
-
+import uuid
 from cltl.combot.infra.config import ConfigurationManager
 from cltl.combot.infra.event import EventBus, Event
 from cltl.combot.infra.resource import ResourceManager
+from cltl.combot.infra.time_util import timestamp_now
 from cltl.combot.infra.topic_worker import TopicWorker
 from cltl.combot.infra.util import ThreadsafeBoolean
-from cltl.combot.infra.time_util import timestamp_now
 from emissor.representation.scenario import AudioSignal, ImageSignal
+from threading import Thread
 
 from cltl.backend.api.backend import Backend
 from cltl.backend.api.camera import Image
 from cltl.backend.api.microphone import AudioParameters
 from cltl.backend.api.storage import AudioStorage, ImageStorage
-from cltl_service.backend.schema import AudioSignalStarted, AudioSignalStopped
+from cltl_service.backend.schema import AudioSignalStarted, AudioSignalStopped, ImageSignalEvent
 
 logger = logging.getLogger(__name__)
 
@@ -113,8 +111,11 @@ class BackendService:
             while self._running:
                 try:
                     self._record_images()
-                except Exception as e:
+                except IOError as e:
                     logger.warning("Failed to capture to image: %s", e)
+                    time.sleep(1)
+                except Exception as e:
+                    logger.exception("Failed to capture to image: %s", e)
                     time.sleep(1)
 
         self._image_thread = Thread(name="cltl.backend.image", target=run)
@@ -172,8 +173,8 @@ class BackendService:
 
     def _publish_image_event(self, image_id: str, image: Image):
         image_signal = self._create_image_signal(image_id, image)
-        event = Event.for_payload(image_signal)
-        self._event_bus.publish(self._image_topic, event)
+        event = ImageSignalEvent.create(image_signal)
+        self._event_bus.publish(self._image_topic, Event.for_payload(event))
 
     def _audio_with_events(self, audio_id, audio, parameters):
         started = False
@@ -211,4 +212,4 @@ class BackendService:
     def _create_image_signal(self, image_id, image):
         return ImageSignal.for_scenario(self._scenario_id, timestamp_now(), timestamp_now(),
                                         f"cltl-storage:image/{image_id}",
-                                        image.bounds.to_tuple(), signal_id=image_id)
+                                        image.bounds.to_diagonal(), signal_id=image_id)

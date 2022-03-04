@@ -4,7 +4,7 @@ import numpy as np
 from cltl.backend.api.camera import Image, Bounds, CameraResolution
 from cltl.backend.spi.image import ImageSource
 
-SYSTEM_BOUNDS = Bounds(-0.55, -0.41+np.pi/2, 0.55, 0.41+np.pi/2)
+SYSTEM_VIEW = Bounds(-0.55, -0.41 + np.pi / 2, 0.55, 0.41 + np.pi / 2)
 
 
 class SystemImageSource(ImageSource):
@@ -55,4 +55,4 @@ class SystemImageSource(ImageSource):
             image = cv2.resize(image, (self.resolution.width, self.resolution.height))
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
-        return Image(image, SYSTEM_BOUNDS)
+        return Image(image, SYSTEM_VIEW)
