@@ -7,7 +7,7 @@ from emissor.representation.scenario import Modality
 
 from cltl.backend.api.camera import CameraResolution
 from cltl.backend.api.util import raw_frames_to_np
-from cltl.backend.source.cv2_source import SYSTEM_BOUNDS
+from cltl.backend.source.cv2_source import SYSTEM_VIEW
 from cltl.backend.server import BackendServer
 
 
@@ -44,13 +44,13 @@ class HostServerTest(unittest.TestCase):
         server = BackendServer(sampling_rate=16000, channels=1, frame_size=480,
                                camera_resolution=resolution, camera_index=0)
         with server.app.test_client() as client:
-            rv = client.get(f"/{Modality.VIDEO.name.lower()}")
+            rv = client.get(f"/{Modality.IMAGE.name.lower()}")
             self.assertEqual("application/json", rv.headers.get("content-type").split(";")[0], rv.status)
             self.assertRegex(rv.headers.get("content-type"), f"resolution\\s*=\\s*{resolution.name}\\s*[;]?", rv.status)
 
             image = json.loads(rv.data)
 
             self.assertEqual(None, image['depth'])
-            self.assertEqual(vars(SYSTEM_BOUNDS), image['bounds'])
+            self.assertEqual(vars(SYSTEM_VIEW), image['bounds'])
             self.assertEqual((resolution.height, resolution.width, 3), np.array(image['image']).shape)
             self.assertTrue(all(isinstance(i, np.integer) for i in np.array(image['image']).flatten()))

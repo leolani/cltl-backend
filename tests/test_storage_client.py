@@ -11,7 +11,7 @@ from cltl.backend.api.storage import STORAGE_SCHEME
 from cltl.backend.api.util import raw_frames_to_np
 from cltl.backend.impl.cached_storage import CachedAudioStorage, CachedImageStorage
 from cltl.backend.source.client_source import ClientAudioSource, ClientImageSource
-from cltl.backend.source.cv2_source import SYSTEM_BOUNDS
+from cltl.backend.source.cv2_source import SYSTEM_VIEW
 from cltl_service.backend.storage import StorageService
 
 DEBUG = 0
@@ -86,19 +86,19 @@ class StorageServiceTest(unittest.TestCase):
                                         dtype=np.uint8)
         depth_array = np.random.randint(0, 256, (resolution.height, resolution.width),
                                         dtype=np.uint8)
-        image = Image(image_array, SYSTEM_BOUNDS, depth_array)
+        image = Image(image_array, SYSTEM_VIEW, depth_array)
         image_storage.store("1", image)
 
         self.server = ServerThread(storage_service.app)
         self.server.start()
 
-        with ClientImageSource("http://0.0.0.0:9999/video/1") as source:
+        with ClientImageSource("http://0.0.0.0:9999/image/1") as source:
             capture = source.capture()
             source_resolution = source.resolution
 
         self.assertEqual(resolution, source_resolution)
         np.testing.assert_array_equal(image_array, capture.image)
-        self.assertEqual(SYSTEM_BOUNDS, capture.bounds)
+        self.assertEqual(SYSTEM_VIEW, capture.bounds)
         np.testing.assert_array_equal(depth_array, capture.depth)
 
     def test_image_client_with_custom_schema(self):
@@ -110,19 +110,19 @@ class StorageServiceTest(unittest.TestCase):
                                dtype=np.uint8)
         depth_array = np.random.randint(0, 256, (resolution.height, resolution.width),
                                         dtype=np.uint8)
-        image = Image(image_array, SYSTEM_BOUNDS, depth_array)
+        image = Image(image_array, SYSTEM_VIEW, depth_array)
         image_storage.store("1", image)
 
         self.server = ServerThread(storage_service.app)
         self.server.start()
 
-        with ClientImageSource(f"{STORAGE_SCHEME}:/video/1", "http://0.0.0.0:9999") as source:
+        with ClientImageSource(f"{STORAGE_SCHEME}:/image/1", "http://0.0.0.0:9999") as source:
             image = source.capture()
             source_resolution = source.resolution
 
         self.assertEqual(resolution, source_resolution)
         np.testing.assert_array_equal(image_array, image.image)
-        self.assertEqual(SYSTEM_BOUNDS, image.bounds)
+        self.assertEqual(SYSTEM_VIEW, image.bounds)
         np.testing.assert_array_equal(depth_array, image.depth)
 
     def test_image_client_capture_first(self):
@@ -134,13 +134,13 @@ class StorageServiceTest(unittest.TestCase):
                                dtype=np.uint8)
         depth_array = np.random.randint(0, 256, (resolution.height, resolution.width),
                                         dtype=np.uint8)
-        image = Image(image_array, SYSTEM_BOUNDS, depth_array)
+        image = Image(image_array, SYSTEM_VIEW, depth_array)
         image_storage.store("1", image)
 
         self.server = ServerThread(storage_service.app)
         self.server.start()
 
-        with ClientImageSource(f"{STORAGE_SCHEME}:/video/1", "http://0.0.0.0:9999") as source:
+        with ClientImageSource(f"{STORAGE_SCHEME}:/image/1", "http://0.0.0.0:9999") as source:
             source_resolution = source.resolution
             self.assertEqual(resolution, source_resolution)
 
@@ -150,6 +150,6 @@ class StorageServiceTest(unittest.TestCase):
             self.assertEqual(resolution, source_resolution)
 
         np.testing.assert_array_equal(image_array, image.image)
-        self.assertEqual(SYSTEM_BOUNDS, image.bounds)
+        self.assertEqual(SYSTEM_VIEW, image.bounds)
         np.testing.assert_array_equal(depth_array, image.depth)
 
