@@ -226,9 +226,9 @@ class ClientImageSource(ImageSource):
     def _deserialize(self, json_data: Any) -> Image:
         image = np.array(json_data['image'], dtype=np.uint8)
         try:
-            bounds = Bounds(**json_data['bounds'])
+            view = Bounds(**json_data['view'])
         except TypeError:
-            bounds = Bounds(*json_data['bounds'])
+            view = Bounds(*json_data['view'])
         depth = np.array(json_data['depth'], dtype=np.uint8) if 'depth' in json_data and json_data['depth'] else None
 
-        return Image(image, bounds, depth)
+        return Image(image, view, depth)

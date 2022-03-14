@@ -192,11 +192,11 @@ class CachedImageStorage(ImageStorage):
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
         with open(self._storage_path / f"{image_id}_meta.json", 'r') as f:
-            bounds = Bounds(**json.load(f)['bounds'])
+            view = Bounds(**json.load(f)['view'])
 
         depth = None
         if os.path.isfile(self._storage_path / f"{image_id}_depth.pkl"):
             with open(self._storage_path / f"{image_id}_depth.pkl", 'rb') as f:
                 depth = pickle.load(f)
 
-        return Image(image, bounds, depth)
+        return Image(image, view, depth)
