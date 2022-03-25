@@ -89,7 +89,8 @@ class BackendService:
         self._topic_worker = TopicWorker([self._tts_topic],
                                          event_bus=self._event_bus,
                                          resource_manager=self._resource_manager,
-                                         processor=self._process_tts)
+                                         processor=self._process_tts,
+                                         name=self.__class__.__name__)
         self._topic_worker.start().wait()
 
     def _stop_tts(self):
