@@ -51,6 +51,6 @@ class HostServerTest(unittest.TestCase):
             image = json.loads(rv.data)
 
             self.assertEqual(None, image['depth'])
-            self.assertEqual(vars(SYSTEM_VIEW), image['bounds'])
+            self.assertEqual(vars(SYSTEM_VIEW), image['view'])
             self.assertEqual((resolution.height, resolution.width, 3), np.array(image['image']).shape)
             self.assertTrue(all(isinstance(i, np.integer) for i in np.array(image['image']).flatten()))

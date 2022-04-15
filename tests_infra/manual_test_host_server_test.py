@@ -37,7 +37,7 @@ def test_mic(server_url, duration=10, store=False):
 
 
 def test_image(server_url):
-    source = ClientImageSource(f"{server_url}/video")
+    source = ClientImageSource(f"{server_url}/image")
 
     inp = None
     while inp != "q":
