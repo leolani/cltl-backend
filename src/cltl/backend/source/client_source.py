@@ -49,7 +49,7 @@ class ClientAudioSource(AudioSource):
     def from_config(cls, config_manager: ConfigurationManager, url: str = None, offset: int = 0, length: int = -1):
         backend_config = config_manager.get_config("cltl.backend")
 
-        url = url if url else f"{backend_config.get('server_url')}/{Modality.AUDIO.name.lower()}"
+        url = url if url else f"{backend_config.get('server_audio_url')}/{Modality.AUDIO.name.lower()}"
         storage_url = backend_config.get('storage_url')
 
         return cls(url, f"{storage_url}", offset, length)
@@ -153,7 +153,7 @@ class ClientImageSource(ImageSource):
     def from_config(cls, config_manager: ConfigurationManager, url: str = None):
         backend_config = config_manager.get_config("cltl.backend")
 
-        url = url if url else f"{backend_config.get('server_url')}/{Modality.IMAGE.name.lower()}"
+        url = url if url else f"{backend_config.get('server_image_url')}/{Modality.IMAGE.name.lower()}"
         storage_url = backend_config.get('storage_url')
 
         return cls(url, f"{storage_url}")
