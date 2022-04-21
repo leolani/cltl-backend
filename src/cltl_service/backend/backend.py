@@ -92,6 +92,9 @@ class BackendService:
         self._backend.stop()
 
     def _start_scenario(self):
+        if not self._require_scenario:
+            return
+
         self._scenario_worker = TopicWorker([self._scenario_topic],
                                          event_bus=self._event_bus,
                                          resource_manager=self._resource_manager,
