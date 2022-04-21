@@ -1,6 +1,8 @@
 import logging
 import time
 import uuid
+from threading import Thread, Lock
+
 from cltl.combot.infra.config import ConfigurationManager
 from cltl.combot.infra.event import EventBus, Event
 from cltl.combot.infra.resource import ResourceManager
@@ -8,7 +10,6 @@ from cltl.combot.infra.time_util import timestamp_now
 from cltl.combot.infra.topic_worker import TopicWorker
 from cltl.combot.infra.util import ThreadsafeBoolean
 from emissor.representation.scenario import AudioSignal, ImageSignal
-from threading import Thread, Lock
 
 from cltl.backend.api.backend import Backend
 from cltl.backend.api.camera import Image
@@ -96,10 +97,10 @@ class BackendService:
             return
 
         self._scenario_worker = TopicWorker([self._scenario_topic],
-                                         event_bus=self._event_bus,
-                                         resource_manager=self._resource_manager,
-                                         processor=self._process_scenario,
-                                         name=self.__class__.__name__ + "_scenario")
+                                            event_bus=self._event_bus,
+                                            resource_manager=self._resource_manager,
+                                            processor=self._process_scenario,
+                                            name=self.__class__.__name__ + "_scenario")
         self._scenario_worker.start().wait()
 
     def _stop_scenario(self):
@@ -112,10 +113,10 @@ class BackendService:
 
     def _start_tts(self):
         self._tts_worker = TopicWorker([self._tts_topic],
-                                         event_bus=self._event_bus,
-                                         resource_manager=self._resource_manager,
-                                         processor=self._process_tts,
-                                         name=self.__class__.__name__ + "_tts")
+                                       event_bus=self._event_bus,
+                                       resource_manager=self._resource_manager,
+                                       processor=self._process_tts,
+                                       name=self.__class__.__name__ + "_tts")
         self._tts_worker.start().wait()
 
     def _stop_tts(self):
@@ -253,7 +254,7 @@ class BackendService:
         self._backend.text_to_speech.say(event.payload.signal.text)
 
     def _create_audio_signal(self, audio_id: str, parameters: AudioParameters,
-                            start: int = None, stop: int = None, length: int = None):
+                             start: int = None, stop: int = None, length: int = None):
         return AudioSignal.for_scenario(self.scenario_id, start, stop,
                                         f"cltl-storage:audio/{audio_id}",
                                         length, parameters.channels, signal_id=audio_id)
