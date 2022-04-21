@@ -3,6 +3,7 @@ import time
 import uuid
 from threading import Thread, Lock
 
+from cltl.combot.event.emissor import AudioSignalStopped, ImageSignalEvent
 from cltl.combot.infra.config import ConfigurationManager
 from cltl.combot.infra.event import EventBus, Event
 from cltl.combot.infra.resource import ResourceManager
@@ -15,7 +16,7 @@ from cltl.backend.api.backend import Backend
 from cltl.backend.api.camera import Image
 from cltl.backend.api.microphone import AudioParameters
 from cltl.backend.api.storage import AudioStorage, ImageStorage
-from cltl_service.backend.schema import AudioSignalStarted, AudioSignalStopped, ImageSignalEvent
+from cltl_service.backend.schema import BackendAudioSignalStarted
 
 logger = logging.getLogger(__name__)
 
@@ -73,6 +74,8 @@ class BackendService:
         return None
 
     def start(self):
+        self._scenario_id = None if self._require_scenario else str(uuid.uuid4())
+
         self._running.value = True
 
         self._backend.start()
@@ -82,7 +85,7 @@ class BackendService:
         self._start_tts()
 
     def stop(self):
-        self._scenario_id = None if self._require_scenario else str(uuid.uuid4())
+        self._scenario_id = None
 
         self._running.value = False
 
@@ -105,7 +108,7 @@ class BackendService:
 
     def _stop_scenario(self):
         if not self._scenario_worker:
-            pass
+            return
 
         self._scenario_worker.stop()
         self._scenario_worker.await_stop()
@@ -121,7 +124,7 @@ class BackendService:
 
     def _stop_tts(self):
         if not self._tts_worker:
-            pass
+            return
 
         self._tts_worker.stop()
         self._tts_worker.await_stop()
@@ -232,7 +235,7 @@ class BackendService:
                 continue
             if not started:
                 signal = self._create_audio_signal(audio_id, parameters, start=timestamp_now())
-                started = AudioSignalStarted.create(signal, parameters)
+                started = BackendAudioSignalStarted.create_backend_signal(signal, parameters)
                 event = Event.for_payload(started)
                 self._event_bus.publish(self._mic_topic, event)
 

@@ -98,7 +98,7 @@ class StorageServiceTest(unittest.TestCase):
 
         self.assertEqual(resolution, source_resolution)
         np.testing.assert_array_equal(image_array, capture.image)
-        self.assertEqual(SYSTEM_VIEW, capture.bounds)
+        self.assertEqual(SYSTEM_VIEW, capture.view)
         np.testing.assert_array_equal(depth_array, capture.depth)
 
     def test_image_client_with_custom_schema(self):
@@ -122,7 +122,7 @@ class StorageServiceTest(unittest.TestCase):
 
         self.assertEqual(resolution, source_resolution)
         np.testing.assert_array_equal(image_array, image.image)
-        self.assertEqual(SYSTEM_VIEW, image.bounds)
+        self.assertEqual(SYSTEM_VIEW, image.view)
         np.testing.assert_array_equal(depth_array, image.depth)
 
     def test_image_client_capture_first(self):
@@ -150,6 +150,6 @@ class StorageServiceTest(unittest.TestCase):
             self.assertEqual(resolution, source_resolution)
 
         np.testing.assert_array_equal(image_array, image.image)
-        self.assertEqual(SYSTEM_VIEW, image.bounds)
+        self.assertEqual(SYSTEM_VIEW, image.view)
         np.testing.assert_array_equal(depth_array, image.depth)
 

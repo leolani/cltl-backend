@@ -297,5 +297,5 @@ class CachedImageStorageTest(unittest.TestCase):
         stored = self.storage.get("image1")
 
         np.testing.assert_array_equal(image_array, stored.image)
-        np.testing.assert_array_equal(bounds, stored.bounds)
+        np.testing.assert_array_equal(bounds, stored.view)
         np.testing.assert_array_equal(depth_array, stored.depth)
