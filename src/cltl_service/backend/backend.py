@@ -228,13 +228,15 @@ class BackendService:
     def _audio_with_events(self, audio_id, audio, parameters):
         started = False
         samples = 0
+        start_time = None
         for frame in audio:
             if not self._running:
                 break
             if frame is None:
                 continue
             if not started:
-                signal = self._create_audio_signal(audio_id, parameters, start=timestamp_now())
+                start_time = timestamp_now()
+                signal = self._create_audio_signal(audio_id, parameters, start=start_time)
                 started = BackendAudioSignalStarted.create_backend_signal(signal, parameters)
                 event = Event.for_payload(started)
                 self._event_bus.publish(self._mic_topic, event)
@@ -243,7 +245,8 @@ class BackendService:
             yield frame
 
         if started:
-            signal = self._create_audio_signal(audio_id, parameters, length=samples, stop=timestamp_now())
+            signal = self._create_audio_signal(audio_id, parameters, length=samples,
+                                               start=start_time, stop=timestamp_now())
             stopped = AudioSignalStopped.create(signal)
             event = Event.for_payload(stopped)
             self._event_bus.publish(self._mic_topic, event)
