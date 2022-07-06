@@ -111,7 +111,7 @@ class Bounds:
         x1 = min(self.x1, bounds.x1)
         y1 = min(self.y1, bounds.y1)
 
-        return None if x0 >= x1 or y0 >= y1 else Bounds(x0, y0, x1, y1)
+        return None if x0 >= x1 or y0 >= y1 else Bounds(x0, x1, y0, y1)
 
     def overlap(self, other: Bounds) -> float:
         """
@@ -193,7 +193,7 @@ class Bounds:
         bounds: Bounds
             Scaled Bounds object
         """
-        return Bounds(self.x0 * x_scale, self.y0 * y_scale, self.x1 * x_scale, self.y1 * y_scale)
+        return Bounds(self.x0 * x_scale, self.x1 * x_scale, self.y0 * y_scale, self.y1 * y_scale)
 
     def to_diagonal(self) -> Tuple[float, float, float, float]:
         """
