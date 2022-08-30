@@ -36,8 +36,9 @@ class SystemImageSource(ImageSource):
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        self._camera.release()
-        self._camera = None
+        if self._camera:
+            self._camera.release()
+            self._camera = None
 
     @property
     def resolution(self) -> CameraResolution:

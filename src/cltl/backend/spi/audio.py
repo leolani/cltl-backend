@@ -1,4 +1,4 @@
-from typing import Iterable
+from typing import Iterable, Iterator
 
 import numpy as np
 
@@ -10,11 +10,18 @@ class AudioSource:
     def __exit__(self, exc_type, exc_val, exc_tb):
         pass
 
-    def __iter__(self):
-        return iter(self.audio)
+    def __iter__(self) -> Iterator[bytes]:
+        return self
+
+    def __next__(self) -> bytes:
+        raise NotImplementedError()
 
     @property
     def audio(self) -> Iterable[np.ndarray]:
+        raise NotImplementedError()
+
+    @property
+    def raw(self) -> Iterable[bytes]:
         raise NotImplementedError()
 
     @property

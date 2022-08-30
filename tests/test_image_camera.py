@@ -119,7 +119,7 @@ class ImageCameraTest(unittest.TestCase):
         pause_processing.set()
 
         source = TestSource(processing, pause_processing)
-        self.camera = ImageCamera(source, 0.01)
+        self.camera = ImageCamera(source, 100)
 
         images = []
         def record():

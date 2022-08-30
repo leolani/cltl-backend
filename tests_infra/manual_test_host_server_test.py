@@ -13,8 +13,8 @@ import sounddevice as sd
 import soundfile
 
 from cltl.backend.api.camera import CameraResolution
-from cltl.backend.source.client_source import ClientAudioSource, ClientImageSource
 from cltl.backend.server import BackendServer
+from cltl.backend.source.client_source import ClientAudioSource, ClientImageSource
 
 logger = logging.getLogger(__name__)
 

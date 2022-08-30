@@ -1,15 +1,15 @@
 import logging
 import re
 from types import SimpleNamespace
-from typing import Any
+from typing import Any, Iterator
 from urllib.parse import urljoin
 
-import numpy as np
 import requests
 from cltl.combot.infra.config import ConfigurationManager
 from emissor.representation.scenario import Modality
 from requests.adapters import HTTPAdapter, BaseAdapter
 
+from cltl.combot.infra.event.serialization import numpy_object_hook
 from cltl.backend.api.camera import Image, CameraResolution, Bounds
 from cltl.backend.api.storage import STORAGE_SCHEME
 from cltl.backend.api.util import raw_frames_to_np, bytes_per_frame
@@ -123,6 +123,9 @@ class ClientAudioSource(AudioSource):
 
         return self._request.iter_content(self._parameters.bytes_per_frame)
 
+    def __iter__(self) -> Iterator[bytes]:
+        return iter(self.content)
+
     @property
     def audio(self):
         return raw_frames_to_np(self.content, self.frame_size, self.channels, self.depth)
@@ -224,11 +227,11 @@ class ClientImageSource(ImageSource):
 
     # TODO centralize
     def _deserialize(self, json_data: Any) -> Image:
-        image = np.array(json_data['image'], dtype=np.uint8)
+        image = numpy_object_hook(json_data['image'])
         try:
             view = Bounds(**json_data['view'])
         except TypeError:
             view = Bounds(*json_data['view'])
-        depth = np.array(json_data['depth'], dtype=np.uint8) if 'depth' in json_data and json_data['depth'] else None
+        depth = numpy_object_hook(json_data['depth'])
 
         return Image(image, view, depth)

@@ -101,8 +101,8 @@ class SynchronizedMicrophone(Microphone):
         while self.muted:
             self._try_unmute()
 
-        with self._source as audio:
-            yield self._get_audio(audio), self.parameters
+        with self._source as source:
+            yield self._get_audio(source.audio), self.parameters
 
         self._try_mute()
 

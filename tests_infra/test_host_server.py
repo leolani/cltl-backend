@@ -1,3 +1,4 @@
+import base64
 import json
 import logging
 import unittest
@@ -5,6 +6,7 @@ import unittest
 import numpy as np
 from emissor.representation.scenario import Modality
 
+from cltl.combot.infra.event.serialization import numpy_object_hook
 from cltl.backend.api.camera import CameraResolution
 from cltl.backend.api.util import raw_frames_to_np
 from cltl.backend.source.cv2_source import SYSTEM_VIEW
@@ -43,14 +45,19 @@ class HostServerTest(unittest.TestCase):
         resolution = CameraResolution.VGA
         server = BackendServer(sampling_rate=16000, channels=1, frame_size=480,
                                camera_resolution=resolution, camera_index=0)
-        with server.app.test_client() as client:
-            rv = client.get(f"/{Modality.IMAGE.name.lower()}")
-            self.assertEqual("application/json", rv.headers.get("content-type").split(";")[0], rv.status)
-            self.assertRegex(rv.headers.get("content-type"), f"resolution\\s*=\\s*{resolution.name}\\s*[;]?", rv.status)
+        server.start()
+        try:
+            with server.app.test_client() as client:
+                rv = client.get(f"/{Modality.IMAGE.name.lower()}")
+                self.assertEqual("application/json", rv.headers.get("content-type").split(";")[0], rv.status)
+                self.assertRegex(rv.headers.get("content-type"), f"resolution\\s*=\\s*{resolution.name}\\s*[;]?", rv.status)
 
-            image = json.loads(rv.data)
+                image = json.loads(rv.data)
 
-            self.assertEqual(None, image['depth'])
-            self.assertEqual(vars(SYSTEM_VIEW), image['view'])
-            self.assertEqual((resolution.height, resolution.width, 3), np.array(image['image']).shape)
-            self.assertTrue(all(isinstance(i, np.integer) for i in np.array(image['image']).flatten()))
+                self.assertEqual(None, image['depth'])
+                self.assertEqual(vars(SYSTEM_VIEW), image['view'])
+                self.assertEqual((resolution.height, resolution.width, 3), tuple(image['image']["shape"]))
+                image_array = numpy_object_hook(image['image']["data"])
+                self.assertTrue(all(isinstance(i, np.integer) for i in image_array.flatten()))
+        finally:
+            server.stop()

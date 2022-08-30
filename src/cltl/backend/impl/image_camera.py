@@ -38,7 +38,7 @@ class ImageCamera(Camera):
         self._recording.value = True
 
         def image_generator():
-            interval = int(1e9 * self._rate)
+            interval = int(1e9 / self.rate) if self.rate > 0 else 0
             start = time.time_ns()
             self._interrupt.value = False
 

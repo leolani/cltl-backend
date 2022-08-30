@@ -1,24 +1,28 @@
 import logging
+from threading import Lock
 
 import flask
-import numpy as np
+from cltl.combot.infra.event.serialization import NumpyJSONEncoder
 from emissor.representation.scenario import Modality
 from flask import Flask, Response, stream_with_context, jsonify
 from flask import g as app_context
-from flask.json import JSONEncoder
 
-from cltl.backend.api.camera import CameraResolution
+from cltl.backend.api.camera import CameraResolution, Image, Bounds
 from cltl.backend.source.cv2_source import SystemImageSource
 from cltl.backend.source.pyaudio_source import PyAudioSource
 
 logger = logging.getLogger(__name__)
 
 
-# TODO move to common util in combot
-class NumpyJSONEncoder(JSONEncoder):
+class BackendJSONEncoder(NumpyJSONEncoder):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
     def default(self, obj):
-        if isinstance(obj, np.ndarray):
-            return obj.tolist()
+        if isinstance(obj, Image):
+            return vars(obj)
+        if isinstance(obj, Bounds):
+            return [obj.x0, obj.x1, obj.y0, obj.y1]
 
         return super().default(obj)
 
@@ -34,6 +38,8 @@ class BackendServer:
         self._frame_size = frame_size
 
         self._app = None
+        self._active_cam = None
+        self._camera_lock = Lock()
 
     @property
     def app(self) -> Flask:
@@ -41,7 +47,7 @@ class BackendServer:
             return self._app
 
         self._app = Flask(__name__)
-        self._app.json_encoder = NumpyJSONEncoder
+        self._app.json_encoder = BackendJSONEncoder
 
         @self._app.route(f"/{Modality.IMAGE.name.lower()}")
         def capture():
@@ -50,8 +56,10 @@ class BackendServer:
             if flask.request.method == 'HEAD':
                 return Response(200, headers={"Content-Type": mimetype_with_resolution})
 
-            with self._camera as camera:
-                image = camera.capture()
+            if not self._active_cam:
+                return Response(404)
+
+            image = self._capture_camera()
 
             response = jsonify(image)
             response.headers["Content-Type"] = mimetype_with_resolution
@@ -88,4 +96,21 @@ class BackendServer:
         return self._app
 
     def run(self, host: str, port: int):
-        self.app.run(host=host, port=port)
+        self.start()
+        self.app.run(host=host, port=port, threaded=True)
+        self.stop()
+
+    def start(self):
+        with self._camera_lock:
+            self._active_cam = self._camera.__enter__()
+
+    def _capture_camera(self):
+        with self._camera_lock:
+            if self._active_cam:
+                return self._active_cam.capture()
+
+    def stop(self):
+        with self._camera_lock:
+            if self._active_cam:
+                self._active_cam.__exit__(None, None, None)
+                self._active_cam = None

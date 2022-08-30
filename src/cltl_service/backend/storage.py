@@ -1,19 +1,24 @@
-import numpy as np
 from emissor.representation.scenario import Modality
 from flask import Flask, Response, stream_with_context, jsonify
 from flask import g as app_context
 from flask import request
-from flask.json import JSONEncoder
 
+from cltl.combot.infra.event.serialization import NumpyJSONEncoder
+
+from cltl.backend.api.camera import Image, Bounds
 from cltl.backend.api.storage import AudioStorage, ImageStorage
 from cltl.backend.api.util import np_to_raw_frames
 
 
-# TODO move to common util in combot
-class NumpyJSONEncoder(JSONEncoder):
+class BackendJSONEncoder(NumpyJSONEncoder):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
     def default(self, obj):
-        if isinstance(obj, np.ndarray):
-            return obj.tolist()
+        if isinstance(obj, Image):
+            return vars(obj)
+        if isinstance(obj, Bounds):
+            return [obj.x0, obj.x1, obj.y0, obj.y1]
 
         return super().default(obj)
 
@@ -36,7 +41,7 @@ class StorageService:
             return self._app
 
         self._app = Flask("audio_storage")
-        self._app.json_encoder = NumpyJSONEncoder
+        self._app.json_encoder = BackendJSONEncoder
 
         @self._app.route(f"/{Modality.AUDIO.name.lower()}/<audio_id>", methods=['PUT'])
         def store_audio(audio_id: str):
