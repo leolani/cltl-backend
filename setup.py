@@ -42,5 +42,8 @@ setup(
             "sounddevice",
             "soundfile",
         ]
+    },
+    entry_points={
+        'console_scripts': ['leoserv = cltl.backend.server:main']
     }
 )
