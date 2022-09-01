@@ -6,7 +6,7 @@ import unittest
 import numpy as np
 from emissor.representation.scenario import Modality
 
-from cltl.combot.infra.event.serialization import numpy_object_hook
+from cltl.backend.api.serialization import numpy_object_hook
 from cltl.backend.api.camera import CameraResolution
 from cltl.backend.api.util import raw_frames_to_np
 from cltl.backend.source.cv2_source import SYSTEM_VIEW

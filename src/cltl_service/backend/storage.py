@@ -3,24 +3,10 @@ from flask import Flask, Response, stream_with_context, jsonify
 from flask import g as app_context
 from flask import request
 
-from cltl.combot.infra.event.serialization import NumpyJSONEncoder
+from cltl.backend.api.serialization import BackendJSONEncoder
 
-from cltl.backend.api.camera import Image, Bounds
 from cltl.backend.api.storage import AudioStorage, ImageStorage
 from cltl.backend.api.util import np_to_raw_frames
-
-
-class BackendJSONEncoder(NumpyJSONEncoder):
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-
-    def default(self, obj):
-        if isinstance(obj, Image):
-            return vars(obj)
-        if isinstance(obj, Bounds):
-            return [obj.x0, obj.x1, obj.y0, obj.y1]
-
-        return super().default(obj)
 
 
 class StorageService:

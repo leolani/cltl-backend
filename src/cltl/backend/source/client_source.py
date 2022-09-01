@@ -1,7 +1,7 @@
 import logging
 import re
 from types import SimpleNamespace
-from typing import Any, Iterator
+from typing import Iterator
 from urllib.parse import urljoin
 
 import requests
@@ -9,8 +9,8 @@ from cltl.combot.infra.config import ConfigurationManager
 from emissor.representation.scenario import Modality
 from requests.adapters import HTTPAdapter, BaseAdapter
 
-from cltl.combot.infra.event.serialization import numpy_object_hook
-from cltl.backend.api.camera import Image, CameraResolution, Bounds
+from cltl.backend.api.camera import Image, CameraResolution
+from cltl.backend.api.serialization import image_hook
 from cltl.backend.api.storage import STORAGE_SCHEME
 from cltl.backend.api.util import raw_frames_to_np, bytes_per_frame
 from cltl.backend.spi.audio import AudioSource
@@ -221,17 +221,6 @@ class ClientImageSource(ImageSource):
 
             logger.debug("Connected to backend at %s", self._url)
 
-            self._image = self._deserialize(request.json())
+            self._image = image_hook(request.json())
 
         return self._image
-
-    # TODO centralize
-    def _deserialize(self, json_data: Any) -> Image:
-        image = numpy_object_hook(json_data['image'])
-        try:
-            view = Bounds(**json_data['view'])
-        except TypeError:
-            view = Bounds(*json_data['view'])
-        depth = numpy_object_hook(json_data['depth'])
-
-        return Image(image, view, depth)

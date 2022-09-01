@@ -2,29 +2,16 @@ import logging
 from threading import Lock
 
 import flask
-from cltl.combot.infra.event.serialization import NumpyJSONEncoder
 from emissor.representation.scenario import Modality
 from flask import Flask, Response, stream_with_context, jsonify
 from flask import g as app_context
 
-from cltl.backend.api.camera import CameraResolution, Image, Bounds
+from cltl.backend.api.camera import CameraResolution
+from cltl.backend.api.serialization import BackendJSONEncoder
 from cltl.backend.source.cv2_source import SystemImageSource
 from cltl.backend.source.pyaudio_source import PyAudioSource
 
 logger = logging.getLogger(__name__)
-
-
-class BackendJSONEncoder(NumpyJSONEncoder):
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-
-    def default(self, obj):
-        if isinstance(obj, Image):
-            return vars(obj)
-        if isinstance(obj, Bounds):
-            return [obj.x0, obj.x1, obj.y0, obj.y1]
-
-        return super().default(obj)
 
 
 class BackendServer:
