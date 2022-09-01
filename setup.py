@@ -28,6 +28,7 @@ setup(
             "parameterized"
         ],
         "host": [
+            "emissor",
             "cachetools",
             "pyaudio",
             "opencv-python",
