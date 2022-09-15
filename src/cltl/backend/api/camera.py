@@ -49,6 +49,10 @@ class Bounds:
     y0: float
     y1: float
 
+    @classmethod
+    def from_diagonal(cls, x0, y0, x1, y1):
+        return cls(x0, x1, y0, y1)
+
     @property
     def width(self) -> float:
         """
