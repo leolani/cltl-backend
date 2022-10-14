@@ -33,6 +33,8 @@ class CachedAudioStorage(AudioStorage):
         self._cache_params = dict()
         self._min_buffer = min_buffer
 
+        os.makedirs(os.path.dirname(self._storage_path), exist_ok=True)
+
     def store(self, audio_id: str, audio: Union[np.array, Iterable[np.array]], sampling_rate: int):
         if isinstance(audio, np.ndarray):
             audio = [audio]
@@ -156,6 +158,8 @@ class CachedImageStorage(ImageStorage):
     def __init__(self, storage_path: str, max_buffer: int = 16):
         self._storage_path = Path(storage_path).resolve()
         self._cache = LRUCache(maxsize=max_buffer)
+
+        os.makedirs(os.path.dirname(self._storage_path), exist_ok=True)
 
     def store(self, image_id: str, image: Image):
         if image_id in self._cache:
