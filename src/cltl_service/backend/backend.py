@@ -153,8 +153,12 @@ class BackendService:
                     logger.exception("Failed to capture to image: %s", e)
                     time.sleep(1)
 
-        self._image_thread = Thread(name="cltl.backend.image", target=run)
-        self._image_thread.start()
+        if self._image_topic:
+            self._image_thread = Thread(name="cltl.backend.image", target=run)
+            self._image_thread.start()
+        else:
+            logger.warning("No image topic configure")
+
 
     def _stop_image(self):
         if not self._image_thread:
@@ -192,7 +196,7 @@ class BackendService:
             self._mic_thread = Thread(name="cltl.backend.mic", target=run)
             self._mic_thread.start()
         else:
-            logger.warning("No microphone topic configured.")
+            logger.warning("No microphone topic configured")
 
     def _stop_mic(self):
         if not self._mic_thread:
