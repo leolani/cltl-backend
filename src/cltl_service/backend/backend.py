@@ -188,8 +188,11 @@ class BackendService:
                     logger.exception("Failed to listen to mic: %s", e)
                     time.sleep(1)
 
-        self._mic_thread = Thread(name="cltl.backend.mic", target=run)
-        self._mic_thread.start()
+        if self._mic_topic:
+            self._mic_thread = Thread(name="cltl.backend.mic", target=run)
+            self._mic_thread.start()
+        else:
+            logger.warning("No microphone topic configured.")
 
     def _stop_mic(self):
         if not self._mic_thread:
