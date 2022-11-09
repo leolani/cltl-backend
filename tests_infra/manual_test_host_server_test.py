@@ -75,7 +75,15 @@ if __name__ == '__main__':
         datefmt='%Y-%m-%d %H:%M:%S',
     )
 
-    parser = argparse.ArgumentParser(description='Test backend servers')
+    epilog = """
+        To test the server manually start the server by running
+            > python manual_test_host_server_test.py --server
+        and in another terminal test the individual modalities by running e.g.
+            > python manual_test_host_server_test.py --modality audio
+        """
+
+    parser = argparse.ArgumentParser(description='Test backend servers', epilog=epilog)
+
     parser.add_argument('--modality', type=str, choices=["audio", "image"], default="image", help="Choose a modality to test.")
     parser.add_argument('--server', action='store_true', help="Run the host server")
     parser.add_argument('--port', type=int, default="5000", help="Port to use.")
