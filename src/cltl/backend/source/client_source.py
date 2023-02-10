@@ -1,5 +1,6 @@
 import logging
 import re
+import time
 from types import SimpleNamespace
 from typing import Iterator
 from urllib.parse import urljoin
@@ -213,6 +214,7 @@ class ClientImageSource(ImageSource):
         if not self._session:
             raise ValueError("session not started, call capture inside a context manager!")
 
+        start = time.time()
         with self._session.get(self._url, stream=True) as request:
             if request.status_code != 200:
                 code = request.status_code
@@ -222,5 +224,7 @@ class ClientImageSource(ImageSource):
             logger.debug("Connected to backend at %s", self._url)
 
             self._image = image_hook(request.json())
+
+        logger.debug("Captured image in %s from %s", time.time() - start, self._url)
 
         return self._image
