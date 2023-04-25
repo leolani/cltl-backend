@@ -13,7 +13,7 @@ class TextOutput:
 
     def consume_stream(self, texts: Iterable[str], language: Optional[str] = None):
         for text in texts:
-            self.consume(text)
+            self.consume(text, language)
 
 
 class TextSource:
