@@ -32,4 +32,4 @@ class AnimatedRemoteTextOutput(TextOutput):
             response = text
         logger.debug("Remote text output: %s", response)
 
-        requests.post(f"{self._remote_url}/text", data=response, headers=tts_headers)
+        requests.post(f"{self._remote_url}/text", data=response.encode('utf-8'), headers=tts_headers)
