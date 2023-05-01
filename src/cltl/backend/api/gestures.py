@@ -36,6 +36,7 @@ class GestureType(Enum):
     DESPAIRING = auto()
     DESPERATE = auto()
     DISAPPOINTED = auto()
+    DO_NOTHING = auto() # This tag does not exist, but should result in no gesture.
     DOWN = auto()
     EARTH = auto()
     EMBARRASSED = auto()
