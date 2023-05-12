@@ -32,12 +32,12 @@ setup(
             "cachetools",
             "pyaudio",
             "opencv-python",
-            "flask<2.0"
+            "flask<2.3"
         ],
         "service": [
             "cltl.combot",
             "emissor",
-            "flask<2.0",
+            "flask<2.3",
             "pyaudio",
             "requests",
             "sounddevice",
