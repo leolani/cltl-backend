@@ -3,7 +3,7 @@ from threading import Lock
 
 import flask
 from emissor.representation.scenario import Modality
-from flask import Flask, Response, stream_with_context, jsonify
+from flask import Flask, Response, stream_with_context, jsonify, request
 from flask import g as app_context
 
 from cltl.backend.api.camera import CameraResolution
@@ -66,6 +66,18 @@ class BackendServer:
             stream = stream_with_context(audio_stream(self._mic))
 
             return Response(stream, mimetype=mime_type)
+
+        @self._app.route(f"/{Modality.TEXT.name.lower()}", methods=['POST'])
+        def tts():
+            text = request.data.decode('utf-8')
+            logger.info("Received utterance: %s", text)
+
+            return Response(status=200)
+
+        @self._app.route("/behaviour/<behaviour_key>", methods=['PUT', 'DELETE'])
+        def behaviour(behaviour_key):
+            logger.info("Received behaviour: %s %s", request.method, behaviour_key)
+            return Response(status=200)
 
         @self._app.after_request
         def set_cache_control(response):
