@@ -27,7 +27,7 @@ class AnimatedRemoteTextOutput(TextOutput):
 
         if self._gestures:
             animation = f"{random.choice(self._gestures).name.lower()}"
-            response = f"^startTag({animation}) ^mode(disabled) {text} ^stopTag({animation})"
+            response = f"^startTag({animation}) {text} ^stopTag({animation})"
         else:
             response = text
         logger.debug("Remote text output: %s", response)
