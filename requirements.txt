@@ -1,5 +1,8 @@
-.[impl,host,service]
+.[impl,local,host,service]
 
 # testing
 werkzeug
 matplotlib
+
+# playsound
+pyobjc==

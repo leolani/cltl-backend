@@ -27,6 +27,11 @@ setup(
             "requests",
             "parameterized"
         ],
+        "local": [
+            "gTTS",
+            "playsound",
+            'pyobjc;platform_system=="darwin"'
+        ],
         "host": [
             "emissor",
             "cachetools",
