@@ -1,6 +1,7 @@
 import os.path
 import tempfile
 import time
+import re
 from typing import Optional
 
 from gtts import gTTS
@@ -22,6 +23,7 @@ class LocalTTSOutput(TextOutput):
             os.remove(self._output_path)
 
     def consume(self, text: str, language: Optional[str] = None):
+        text = re.sub(r'[\\]pau\s*=\s*\d*[\\]', '', text)
         myobj = gTTS(text=text, lang=language if language else "en", slow=False)
         myobj.save(self._output_path)
         playsound(self._output_path)
