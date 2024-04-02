@@ -5,4 +5,4 @@ werkzeug
 matplotlib
 
 # playsound
-pyobjc==
+pyobjc
