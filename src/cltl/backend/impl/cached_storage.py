@@ -4,6 +4,7 @@ import os.path
 import pickle
 from pathlib import Path
 from queue import Queue, Empty
+from threading import Lock
 from types import SimpleNamespace
 from typing import Iterable, Union
 
@@ -33,25 +34,30 @@ class CachedAudioStorage(AudioStorage):
         self._cache_params = dict()
         self._min_buffer = min_buffer
 
+        self._cache_lock = Lock()
+
         os.makedirs(os.path.dirname(self._storage_path), exist_ok=True)
 
     def store(self, audio_id: str, audio: Union[np.array, Iterable[np.array]], sampling_rate: int):
         if isinstance(audio, np.ndarray):
             audio = [audio]
 
-        self._cache[audio_id] = Queue()
+        with self._cache_lock:
+            self._cache[audio_id] = Queue()
+            self._cache_params[audio_id] = None
 
         for frame in audio:
-            if audio_id not in self._cache_params:
+            if not self._cache_params[audio_id]:
                 self._cache_params[audio_id] = self._audio_params(frame, sampling_rate)
             self._cache[audio_id].put(frame)
 
         if not self._cache[audio_id].qsize() == 0:
             self._write(audio_id, self._cache[audio_id].queue, sampling_rate)
 
-        del self._cache[audio_id]
-        if audio_id in self._cache_params:
-            del self._cache_params[audio_id]
+        with self._cache_lock:
+            del self._cache[audio_id]
+            if audio_id in self._cache_params:
+                del self._cache_params[audio_id]
 
     def _audio_params(self, audio, sampling_rate):
         channels = 1 if audio.ndim == 1 else audio.shape[1]
@@ -81,7 +87,10 @@ class CachedAudioStorage(AudioStorage):
 
     def get(self, id_: str, offset: int = 0, length: int = -1) -> (Iterable[np.array], AudioParameters):
         try:
-            parameters = self._cache_params[id_]
+            with self._cache_lock:
+                parameters = None
+                while not parameters:
+                    parameters = self._cache_params[id_]
         except KeyError:
             parameters = AudioParameters(**vars(self._read_meta_from_file(id_).parameters))
 
