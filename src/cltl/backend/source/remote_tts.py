@@ -10,6 +10,19 @@ from cltl.backend.spi.text import TextOutput
 logger = logging.getLogger(__name__)
 
 
+class RemoteTextOutput(TextOutput):
+    """
+    Sends text to a remote TTS system.
+    """
+
+    def __init__(self, remote_url: str):
+        self._remote_url = remote_url
+
+    def consume(self, text: str, language: Optional[str] = None):
+        tts_headers = {'Content-type': 'text/plain'}
+        requests.post(f"{self._remote_url}/text", data=text.encode('utf-8'), headers=tts_headers)
+
+
 class AnimatedRemoteTextOutput(TextOutput):
     """
     Sends text to a remote TTS system. Text is annotated with random gestures
