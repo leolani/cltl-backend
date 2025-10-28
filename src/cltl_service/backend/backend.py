@@ -230,7 +230,7 @@ class BackendService:
     def _publish_image_event(self, image_id: str, image: Image):
         image_signal = self._create_image_signal(image_id, image)
         event = ImageSignalEvent.create(image_signal)
-        self._event_bus.publish(self._image_topic, Event.for_payload(event))
+        self._event_bus.publish(self._image_topic, Event.for_scenario_payload(self.scenario_id, event))
 
     def _audio_with_events(self, audio_id, audio, parameters):
         started = False
@@ -245,7 +245,7 @@ class BackendService:
                 start_time = timestamp_now()
                 signal = self._create_audio_signal(audio_id, parameters, start=start_time)
                 started = BackendAudioSignalStarted.create_backend_signal(signal, parameters)
-                event = Event.for_payload(started)
+                event = Event.for_scenario_payload(self.scenario_id, started)
                 self._event_bus.publish(self._mic_topic, event)
 
             samples += len(frame)
@@ -255,7 +255,7 @@ class BackendService:
             signal = self._create_audio_signal(audio_id, parameters, length=samples,
                                                start=start_time, stop=timestamp_now())
             stopped = AudioSignalStopped.create(signal)
-            event = Event.for_payload(stopped)
+            event = Event.for_scenario_payload(self.scenario_id, stopped)
             self._event_bus.publish(self._mic_topic, event)
 
     def _process_scenario(self, event: Event):
