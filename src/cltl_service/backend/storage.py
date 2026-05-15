@@ -5,7 +5,7 @@ from flask import Flask, Response, stream_with_context, jsonify
 from flask import g as app_context
 from flask import request
 
-from cltl.backend.api.serialization import BackendJSONEncoder
+from cltl.backend.api.serialization import BackendJSONEncoder, image_hook
 from cltl.backend.api.storage import AudioStorage, ImageStorage
 from cltl.backend.api.util import bytes_per_frame, np_to_raw_frames, raw_frames_to_np
 
@@ -98,7 +98,15 @@ class StorageService:
 
         @self._app.route(f"/{Modality.IMAGE.name.lower()}/<image_id>", methods=['PUT'])
         def store_image(image_id: str):
-            return Response("Currently only storing images directly from the camera is supported", status=501)
+            image_data = request.get_json(force=True, silent=True)
+            if image_data is None:
+                return Response("Expected JSON body with image data", status=400)
+
+            image = image_hook(image_data)
+            self._storage_image.store(image_id, image)
+            logger.debug("Stored remote image %s", image_id)
+
+            return Response(status=204)
 
         @self._app.route(f"/{Modality.IMAGE.name.lower()}/<image_id>")
         def get_image(image_id: str):

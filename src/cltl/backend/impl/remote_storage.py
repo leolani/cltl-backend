@@ -1,4 +1,5 @@
 import itertools
+import json
 import logging
 from typing import Iterable, Union
 
@@ -6,8 +7,10 @@ import numpy as np
 import requests
 from cltl.combot.infra.config import ConfigurationManager
 
+from cltl.backend.api.camera import Image
 from cltl.backend.api.microphone import AudioParameters
-from cltl.backend.api.storage import AudioStorage
+from cltl.backend.api.serialization import BackendJSONEncoder, image_hook
+from cltl.backend.api.storage import AudioStorage, ImageStorage
 from cltl.backend.api.util import bytes_per_frame, np_to_raw_frames, raw_frames_to_np
 
 logger = logging.getLogger(__name__)
@@ -102,3 +105,45 @@ class RemoteAudioStorage(AudioStorage):
             frame_size=params["frame_size"],
             sample_width=2,
         )
+
+
+class RemoteImageStorage(ImageStorage):
+    """ImageStorage that proxies store/get operations to a remote StorageService over HTTP."""
+
+    @classmethod
+    def from_config(cls, config_manager: ConfigurationManager) -> "RemoteImageStorage":
+        config = config_manager.get_config("cltl.backend.remote_storage")
+        return cls(config.get("storage_url"), config.get_float("upload_timeout", fallback=30.0))
+
+    def __init__(self, storage_url: str, upload_timeout: float = 30.0):
+        self._storage_url = storage_url.rstrip("/")
+        self._upload_timeout = upload_timeout
+
+    def store(self, image_id: str, image: Image):
+        url = f"{self._storage_url}/image/{image_id}"
+        content_type = f"application/json; resolution={image.resolution.name}"
+        body = json.dumps(image, cls=BackendJSONEncoder)
+
+        logger.debug("Uploading image %s to %s", image_id, url)
+        response = requests.put(
+            url,
+            data=body,
+            headers={"Content-Type": content_type},
+            timeout=(self._upload_timeout, None),
+        )
+
+        if not response.ok:
+            raise IOError(
+                f"Failed to store image {image_id} at {url}: {response.status_code} {response.text}"
+            )
+
+        logger.debug("Uploaded image %s", image_id)
+
+    def get(self, image_id: str) -> Image:
+        url = f"{self._storage_url}/image/{image_id}"
+
+        response = requests.get(url, timeout=(self._upload_timeout, None))
+        if not response.ok:
+            raise KeyError(f"No image with id {image_id} found at {url}: {response.status_code}")
+
+        return image_hook(response.json())
