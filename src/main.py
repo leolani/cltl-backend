@@ -49,11 +49,17 @@ def main():
     application = ApplicationContainer()
 
     with application:
+        flask_app = Flask(__name__)
+
+        @flask_app.route('/health')
+        def health():
+            return 'OK', 200
+
         routes = {'/storage': application.storage_service.app}
         if application.server:
             routes['/host'] = application.server.app
 
-        web_app = DispatcherMiddleware(Flask(__name__), routes)
+        web_app = DispatcherMiddleware(flask_app, routes)
         run_simple('0.0.0.0', 8000, web_app, threaded=True, use_reloader=False, use_debugger=False)
 
 
