@@ -1,12 +1,18 @@
+import logging
+
 from emissor.representation.scenario import Modality
 from flask import Flask, Response, stream_with_context, jsonify
 from flask import g as app_context
 from flask import request
 
 from cltl.backend.api.serialization import BackendJSONEncoder
-
 from cltl.backend.api.storage import AudioStorage, ImageStorage
-from cltl.backend.api.util import np_to_raw_frames
+from cltl.backend.api.util import bytes_per_frame, np_to_raw_frames, raw_frames_to_np
+
+logger = logging.getLogger(__name__)
+
+_CONTENT_TYPE_SEPARATOR = ";"
+_AUDIO_MIME_TYPE = "audio/L16"
 
 
 class StorageService:
@@ -31,7 +37,21 @@ class StorageService:
 
         @self._app.route(f"/{Modality.AUDIO.name.lower()}/<audio_id>", methods=['PUT'])
         def store_audio(audio_id: str):
-            return Response("Currently only storing audio directly from the microphone is supported", status=501)
+            content_type = request.headers.get("Content-Type", "")
+            try:
+                sampling_rate, channels, frame_size = _parse_audio_content_type(content_type)
+            except ValueError as e:
+                return Response(str(e), status=415)
+
+            chunk_size = bytes_per_frame(frame_size, channels, sample_depth=2)
+            frames = raw_frames_to_np(
+                _iter_stream_chunks(request.stream, chunk_size),
+                frame_size, channels, sample_depth=2,
+            )
+            self._storage_audio.store(audio_id, frames, sampling_rate)
+            logger.debug("Stored remote audio %s", audio_id)
+
+            return Response(status=204)
 
         @self._app.route(f"/{Modality.AUDIO.name.lower()}/<audio_id>")
         def get_audio(audio_id: str):
@@ -98,3 +118,22 @@ class StorageService:
             return response
 
         return self._app
+
+
+def _parse_audio_content_type(content_type: str):
+    parts = [p.strip() for p in content_type.split(_CONTENT_TYPE_SEPARATOR)]
+    if len(parts) != 4 or parts[0] != _AUDIO_MIME_TYPE:
+        raise ValueError(
+            f"Unsupported Content-Type: '{content_type}', "
+            f"expected '{_AUDIO_MIME_TYPE}' with rate, channels, frame_size"
+        )
+    params = {key.strip(): int(value.strip()) for key, value in (p.split("=") for p in parts[1:])}
+    return params["rate"], params["channels"], params["frame_size"]
+
+
+def _iter_stream_chunks(stream, chunk_size: int):
+    while True:
+        chunk = stream.read(chunk_size)
+        if not chunk:
+            return
+        yield chunk
