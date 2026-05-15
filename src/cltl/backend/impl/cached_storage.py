@@ -46,18 +46,18 @@ class CachedAudioStorage(AudioStorage):
             self._cache[audio_id] = Queue()
             self._cache_params[audio_id] = None
 
-        for frame in audio:
-            if not self._cache_params[audio_id]:
-                self._cache_params[audio_id] = self._audio_params(frame, sampling_rate)
-            self._cache[audio_id].put(frame)
+        try:
+            for frame in audio:
+                if not self._cache_params[audio_id]:
+                    self._cache_params[audio_id] = self._audio_params(frame, sampling_rate)
+                self._cache[audio_id].put(frame)
 
-        if not self._cache[audio_id].qsize() == 0:
-            self._write(audio_id, self._cache[audio_id].queue, sampling_rate)
-
-        with self._cache_lock:
-            del self._cache[audio_id]
-            if audio_id in self._cache_params:
-                del self._cache_params[audio_id]
+            if not self._cache[audio_id].qsize() == 0:
+                self._write(audio_id, self._cache[audio_id].queue, sampling_rate)
+        finally:
+            with self._cache_lock:
+                self._cache.pop(audio_id, None)
+                self._cache_params.pop(audio_id, None)
 
     def _audio_params(self, audio, sampling_rate):
         channels = 1 if audio.ndim == 1 else audio.shape[1]
