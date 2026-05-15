@@ -1,3 +1,9 @@
+"""Standalone storage service entry point.
+
+Run this instead of main.py when deploying storage without the hardware backend
+(microphone, camera, TTS). Exposes the /storage HTTP endpoint so other containers
+can use remote audio/image storage.
+"""
 import logging.config
 import os
 
@@ -6,7 +12,7 @@ from cltl.combot.infra.config.k8config import K8LocalConfigurationContainer
 from cltl.combot.infra.di_container import singleton
 from cltl.combot.infra.event.api import Event, PAYLOAD
 from cltl.combot.infra.event.memory import SynchronousEventBus
-from cltl_service.backend.backend_container import BackendContainer
+from cltl_service.backend.storage_container import StorageContainer
 from emissor.representation.util import marshal, unmarshal, register_type_var
 from flask import Flask
 from werkzeug.middleware.dispatcher import DispatcherMiddleware
@@ -29,7 +35,7 @@ def deserializer(obj):
     return unmarshal(obj, cls=Event)
 
 
-class ApplicationContainer(BackendContainer):
+class ApplicationContainer(StorageContainer):
     @property
     @singleton
     def event_bus_serializer(self):
@@ -49,11 +55,7 @@ def main():
     application = ApplicationContainer()
 
     with application:
-        routes = {'/storage': application.storage_service.app}
-        if application.server:
-            routes['/host'] = application.server.app
-
-        web_app = DispatcherMiddleware(Flask(__name__), routes)
+        web_app = DispatcherMiddleware(Flask(__name__), {'/storage': application.storage_service.app})
         run_simple('0.0.0.0', 8000, web_app, threaded=True, use_reloader=False, use_debugger=False)
 
 
