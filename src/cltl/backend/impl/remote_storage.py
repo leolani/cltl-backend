@@ -25,7 +25,10 @@ class RemoteAudioStorage(AudioStorage):
     @classmethod
     def from_config(cls, config_manager: ConfigurationManager) -> "RemoteAudioStorage":
         config = config_manager.get_config("cltl.backend.remote_storage")
-        return cls(config.get("storage_url"), config.get_float("upload_timeout", fallback=30.0))
+        storage_url = config.get("storage_url")
+        timeout = config.get_float("upload_timeout") if "upload_timeout" in config else 30.0
+
+        return cls(storage_url, timeout)
 
     def __init__(self, storage_url: str, upload_timeout: float = 30.0):
         self._storage_url = storage_url.rstrip("/")
@@ -113,7 +116,10 @@ class RemoteImageStorage(ImageStorage):
     @classmethod
     def from_config(cls, config_manager: ConfigurationManager) -> "RemoteImageStorage":
         config = config_manager.get_config("cltl.backend.remote_storage")
-        return cls(config.get("storage_url"), config.get_float("upload_timeout", fallback=30.0))
+        storage_url = config.get("storage_url")
+        timeout = config.get_float("upload_timeout") if "upload_timeout" in config else 30.0
+
+        return cls(storage_url, timeout)
 
     def __init__(self, storage_url: str, upload_timeout: float = 30.0):
         self._storage_url = storage_url.rstrip("/")
