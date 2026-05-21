@@ -3,7 +3,7 @@ import time
 import uuid
 from threading import Thread, Lock
 
-from cltl.combot.event.emissor import AudioSignalStopped, ImageSignalEvent
+from cltl.combot.event.emissor import AudioSignalStarted, AudioSignalStopped, ImageSignalEvent
 from cltl.combot.infra.config import ConfigurationManager
 from cltl.combot.infra.event import EventBus, Event
 from cltl.combot.infra.resource import ResourceManager
@@ -16,7 +16,6 @@ from cltl.backend.api.backend import Backend
 from cltl.backend.api.camera import Image
 from cltl.backend.api.microphone import AudioParameters
 from cltl.backend.api.storage import AudioStorage, ImageStorage
-from cltl_service.backend.schema import BackendAudioSignalStarted
 
 logger = logging.getLogger(__name__)
 
@@ -244,7 +243,7 @@ class BackendService:
             if not started:
                 start_time = timestamp_now()
                 signal = self._create_audio_signal(audio_id, parameters, start=start_time)
-                started = BackendAudioSignalStarted.create_backend_signal(signal, parameters)
+                started = AudioSignalStarted.create(signal)
                 event = Event.for_scenario_payload(self.scenario_id, started)
                 self._event_bus.publish(self._mic_topic, event)
 
