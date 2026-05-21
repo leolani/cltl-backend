@@ -78,9 +78,10 @@ class BackendContainer(StorageContainer):
 
     @property
     @singleton
-    def server(self) -> Optional[Flask]:
+    def server(self) -> Optional[BackendServer]:
         if not self.config_manager.get_config('cltl.backend').get_boolean("run_server"):
-            return None
+            # @singleton cannot handle None
+            return False
 
         audio_config = self.config_manager.get_config('cltl.audio')
         video_config = self.config_manager.get_config('cltl.video')
