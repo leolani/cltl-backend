@@ -50,12 +50,22 @@ class ApplicationContainer(StorageContainer):
         return super().event_bus
 
 
+def _create_root_app() -> Flask:
+    root = Flask(__name__)
+
+    @root.route("/health")
+    def health():
+        return "OK", 200
+
+    return root
+
+
 def main():
     K8LocalConfigurationContainer.load_configuration()
     application = ApplicationContainer()
 
     with application:
-        web_app = DispatcherMiddleware(Flask(__name__), {'/storage': application.storage_service.app})
+        web_app = DispatcherMiddleware(_create_root_app(), {'/storage': application.storage_service.app})
         run_simple('0.0.0.0', 8000, web_app, threaded=True, use_reloader=False, use_debugger=False)
 
 
