@@ -8,7 +8,6 @@ from threading import Lock
 from types import SimpleNamespace
 from typing import Iterable, Union
 
-import cv2
 import numpy as np
 import soundfile as sf
 from cachetools import LRUCache
@@ -19,6 +18,12 @@ from cltl.backend.api.camera import Image, Bounds
 from cltl.backend.api.storage import AudioStorage, AudioParameters, ImageStorage
 
 logger = logging.getLogger(__name__)
+
+try:
+    import cv2
+except ImportError:
+    cv2 = None
+    logger.warning("cv2 not available, image storage (CachedImageStorage) will not work")
 
 
 class CachedAudioStorage(AudioStorage):

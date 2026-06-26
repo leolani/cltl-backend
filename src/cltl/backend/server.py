@@ -4,17 +4,24 @@ import wave
 from threading import Lock
 
 import flask
-import pyaudio
 from emissor.representation.scenario import Modality
 from flask import Flask, Response, stream_with_context, jsonify, request
 from flask import g as app_context
 
 from cltl.backend.api.camera import CameraResolution
 from cltl.backend.api.serialization import BackendJSONEncoder
-from cltl.backend.source.cv2_source import SystemImageSource
-from cltl.backend.source.pyaudio_source import PyAudioSource
 
 logger = logging.getLogger(__name__)
+
+try:
+    import pyaudio
+    from cltl.backend.source.pyaudio_source import PyAudioSource
+    from cltl.backend.source.cv2_source import SystemImageSource
+except ImportError:
+    pyaudio = None
+    PyAudioSource = None
+    SystemImageSource = None
+    logger.warning("pyaudio or cv2 not available, hardware backend (BackendServer) will not work")
 
 
 class BackendServer:
