@@ -1,7 +1,10 @@
+import io
 import logging
+import wave
 from threading import Lock
 
 import flask
+import pyaudio
 from emissor.representation.scenario import Modality
 from flask import Flask, Response, stream_with_context, jsonify, request
 from flask import g as app_context
@@ -27,6 +30,7 @@ class BackendServer:
         self._app = None
         self._active_cam = None
         self._camera_lock = Lock()
+        self._speaker_lock = Lock()
 
     @property
     def app(self) -> Flask:
@@ -71,6 +75,43 @@ class BackendServer:
         def tts():
             text = request.data.decode('utf-8')
             logger.info("Received utterance: %s", text)
+
+            return Response(status=200)
+
+        @self._app.route("/sound", methods=['POST'])
+        def play_sound():
+            if request.mimetype != 'audio/wav':
+                return Response("Content-Type must be audio/wav", status=400)
+            wav_bytes = request.data
+            if not wav_bytes:
+                return Response("Empty body", status=400)
+
+            try:
+                with wave.open(io.BytesIO(wav_bytes)) as wf:
+                    # Serialize playback: PortAudio maintains global state and
+                    # pa.terminate() is not safe to call concurrently.
+                    with self._speaker_lock:
+                        pa = pyaudio.PyAudio()
+                        try:
+                            stream = pa.open(
+                                format=pa.get_format_from_width(wf.getsampwidth()),
+                                channels=wf.getnchannels(),
+                                rate=wf.getframerate(),
+                                output=True,
+                            )
+                            try:
+                                chunk = wf.readframes(1024)
+                                while chunk:
+                                    stream.write(chunk)
+                                    chunk = wf.readframes(1024)
+                            finally:
+                                stream.stop_stream()
+                                stream.close()
+                        finally:
+                            pa.terminate()
+            except Exception:
+                logger.exception("Failed to play audio")
+                return Response(status=500)
 
             return Response(status=200)
 

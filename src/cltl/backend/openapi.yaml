@@ -1,0 +1,366 @@
+openapi: 3.1.0
+
+info:
+  title: robond Robot Proxy API
+  version: 0.1.0
+  description: |
+    HTTP interface exposed by the robond robot proxy (`robond.robot.proxy`).
+    Runs on the robot PC (default port 7342) so a session runner on a separate
+    machine can control the robot over the network without a direct ROS dependency.
+
+    All responses include `Cache-Control: no-cache` headers.
+
+servers:
+  - url: http://localhost:7342
+    description: Local proxy (DummyRobotInterface, for development)
+  - url: "http://{host}:7342"
+    description: Remote robot proxy
+    variables:
+      host:
+        default: robot.local
+        description: Hostname or IP address of the robot PC
+
+paths:
+
+  /health:
+    get:
+      summary: Liveness check
+      description: "Returns `ok: true` and the currently configured TTS language."
+      operationId: getHealth
+      responses:
+        "200":
+          description: Proxy is running
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControl"
+            Pragma:
+              $ref: "#/components/headers/Pragma"
+            Expires:
+              $ref: "#/components/headers/Expires"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
+
+  /text:
+    post:
+      summary: Speak text (TTS)
+      description: |
+        Sends plain text to the robot for speech synthesis. If `X-Gesture`
+        or `X-Expression` headers are provided the action is coordinated —
+        speech, gesture, and expression start simultaneously.
+      operationId: postText
+      parameters:
+        - $ref: "#/components/parameters/XGesture"
+        - $ref: "#/components/parameters/XExpression"
+        - $ref: "#/components/parameters/XSpeed"
+      requestBody:
+        required: true
+        content:
+          text/plain:
+            schema:
+              type: string
+              description: Text to speak (UTF-8)
+            example: "Hello! How are you today?"
+      responses:
+        "200":
+          description: Speech (and optional gesture/expression) dispatched
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControl"
+            Pragma:
+              $ref: "#/components/headers/Pragma"
+            Expires:
+              $ref: "#/components/headers/Expires"
+        "400":
+          description: Invalid `X-Gesture`, `X-Expression`, or `X-Speed` header value
+        "500":
+          description: Unexpected error during speech or coordinated action
+
+  /sound:
+    post:
+      summary: Play a WAV audio file
+      description: |
+        Sends raw WAV audio to the robot for immediate playback. Blocks until
+        playback completes. Intended for locally synthesised TTS or other audio.
+      operationId: postSound
+      requestBody:
+        required: true
+        content:
+          audio/wav:
+            schema:
+              type: string
+              contentMediaType: audio/wav
+              contentEncoding: binary
+      responses:
+        "200":
+          description: Audio played successfully
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControl"
+            Pragma:
+              $ref: "#/components/headers/Pragma"
+            Expires:
+              $ref: "#/components/headers/Expires"
+        "400":
+          description: Missing or incorrect `Content-Type` (must be `audio/wav`), or empty body
+        "500":
+          description: Playback failure (e.g. ROS service error)
+
+  /behaviour/{key}:
+    put:
+      summary: Start a behaviour
+      description: |
+        Sets a gesture, expression, or language on the robot.
+
+        `key` format: `<kind>:<value>`
+
+        | Kind | Example values |
+        |------|----------------|
+        | `gesture` | `wave`, `nod`, `clap`, … (see `GET /behaviours`) |
+        | `expression` | `happy`, `sad`, `neutral`, … (see `GET /behaviours`) |
+        | `language` | `en-US`, `nl-NL` |
+      operationId: putBehaviour
+      parameters:
+        - $ref: "#/components/parameters/BehaviourKey"
+      responses:
+        "200":
+          description: Behaviour applied
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControl"
+            Pragma:
+              $ref: "#/components/headers/Pragma"
+            Expires:
+              $ref: "#/components/headers/Expires"
+        "400":
+          description: Unknown behaviour kind or invalid value
+        "500":
+          description: Unexpected error while applying the behaviour
+
+    delete:
+      summary: Stop a behaviour
+      description: |
+        Stops an ongoing behaviour. Currently only `speech` is acted upon
+        (interrupts ongoing TTS); all other kinds are accepted but are no-ops.
+        Any path value is accepted — the endpoint always returns 200.
+      operationId: deleteBehaviour
+      parameters:
+        - name: key
+          in: path
+          required: true
+          description: Behaviour identifier; only `speech` has effect, all others are no-ops
+          schema:
+            type: string
+            example: speech
+      responses:
+        "200":
+          description: Stop signal sent (or silently ignored for non-speech kinds)
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControl"
+            Pragma:
+              $ref: "#/components/headers/Pragma"
+            Expires:
+              $ref: "#/components/headers/Expires"
+        "404":
+          description: Path could not be resolved (e.g. empty key segment)
+
+  /behaviours:
+    get:
+      summary: List available gestures and expressions
+      description: Returns the sets of gesture and expression values supported by the connected robot.
+      operationId: getBehaviours
+      responses:
+        "200":
+          description: Available behaviours
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControl"
+            Pragma:
+              $ref: "#/components/headers/Pragma"
+            Expires:
+              $ref: "#/components/headers/Expires"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BehavioursResponse"
+
+  /configure:
+    post:
+      summary: Configure audio levels
+      description: |
+        Sets speaker volume and/or microphone gain. Fields are optional; omit
+        any you do not want to change. Silently ignored if the robot does not
+        support the requested control.
+      operationId: postConfigure
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ConfigureRequest"
+      responses:
+        "200":
+          description: Configuration applied (or silently no-op if unsupported)
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControl"
+            Pragma:
+              $ref: "#/components/headers/Pragma"
+            Expires:
+              $ref: "#/components/headers/Expires"
+        "400":
+          description: Non-integer value for `volume` or `mic_gain`
+
+  /audio:
+    get:
+      summary: Stream microphone audio
+      description: |
+        Streams raw 16-bit linear PCM audio from the robot's microphone as a
+        chunked HTTP response. The `Content-Type` header encodes the stream
+        parameters: `audio/L16; rate=<Hz>; channels=<n>; frame_size=<samples>`.
+
+        Typically: 16 000 Hz, 1 channel, 480-sample frames (30 ms).
+      operationId: getAudio
+      responses:
+        "200":
+          description: Audio stream (chunked)
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControl"
+            Pragma:
+              $ref: "#/components/headers/Pragma"
+            Expires:
+              $ref: "#/components/headers/Expires"
+          content:
+            audio/L16:
+              schema:
+                type: string
+                contentMediaType: audio/L16
+                contentEncoding: binary
+                description: Raw 16-bit signed little-endian PCM frames, streamed indefinitely
+
+components:
+
+  parameters:
+    BehaviourKey:
+      name: key
+      in: path
+      required: true
+      description: "Behaviour identifier in `<kind>:<value>` format, e.g. `gesture:wave` or `expression:happy`"
+      schema:
+        type: string
+        pattern: "^(gesture|expression|language):.+$"
+        example: gesture:wave
+
+    XGesture:
+      name: X-Gesture
+      in: header
+      required: false
+      description: Gesture to perform simultaneously with speech (see `GestureEnum`)
+      schema:
+        $ref: "#/components/schemas/GestureEnum"
+
+    XExpression:
+      name: X-Expression
+      in: header
+      required: false
+      description: Facial expression to show simultaneously with speech (see `ExpressionEnum`)
+      schema:
+        $ref: "#/components/schemas/ExpressionEnum"
+
+    XSpeed:
+      name: X-Speed
+      in: header
+      required: false
+      description: Gesture playback speed (0.0 = slowest, 1.0 = fastest; default 0.5)
+      schema:
+        type: number
+        format: float
+        minimum: 0.0
+        maximum: 1.0
+        default: 0.5
+
+  schemas:
+    HealthResponse:
+      type: object
+      required: [ok, language]
+      properties:
+        ok:
+          type: boolean
+          example: true
+        language:
+          type: string
+          description: Currently configured TTS language tag
+          example: en-US
+
+    BehavioursResponse:
+      type: object
+      required: [gestures, expressions]
+      properties:
+        gestures:
+          type: array
+          items:
+            $ref: "#/components/schemas/GestureEnum"
+        expressions:
+          type: array
+          items:
+            $ref: "#/components/schemas/ExpressionEnum"
+
+    GestureEnum:
+      type: string
+      enum:
+        - wave
+        - nod
+        - clap
+        - happy
+        - stretch
+        - cheer
+        - greet
+        - farewell
+        - farewell_warm
+        - point_front
+
+    ExpressionEnum:
+      type: string
+      enum:
+        - happy
+        - excited
+        - neutral
+        - sad
+        - angry
+        - surprised
+        - thinking
+        - smile
+        - confused
+        - shy
+
+    ConfigureRequest:
+      type: object
+      properties:
+        volume:
+          type: integer
+          description: "Speaker volume (0–150; clamped to that range; robot-specific, silently ignored if unsupported)"
+          example: 100
+        mic_gain:
+          type: integer
+          description: "Microphone gain (0–150; clamped to that range; robot-specific, silently ignored if unsupported)"
+          example: 150
+
+  headers:
+    CacheControl:
+      description: Prevents clients and proxies from caching responses
+      schema:
+        type: string
+        example: no-cache, no-store, must-revalidate
+    Pragma:
+      description: HTTP/1.0 backward-compatible no-cache directive
+      schema:
+        type: string
+        example: no-cache
+    Expires:
+      description: Forces immediate expiry
+      schema:
+        type: string
+        example: "0"

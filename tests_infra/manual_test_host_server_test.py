@@ -5,7 +5,10 @@ except ImportError as e:
     raise e
 
 import argparse
+import io
 import logging
+import struct
+import wave
 
 import numpy as np
 import requests
@@ -49,6 +52,31 @@ def test_image(server_url):
         inp = input("Press enter to continue, q to quit:")
 
 
+def test_sound(server_url, wav_path=None):
+    if wav_path:
+        with open(wav_path, 'rb') as f:
+            wav_bytes = f.read()
+    else:
+        # Generate a short 440 Hz tone as a fallback when no file is provided.
+        rate, duration_ms = 16000, 500
+        num_frames = rate * duration_ms // 1000
+        tone = [int(32767 * 0.3 * __import__('math').sin(2 * __import__('math').pi * 440 * i / rate))
+                for i in range(num_frames)]
+        buf = io.BytesIO()
+        with wave.open(buf, 'wb') as wf:
+            wf.setnchannels(1)
+            wf.setsampwidth(2)
+            wf.setframerate(rate)
+            wf.writeframes(struct.pack(f'<{num_frames}h', *tone))
+        wav_bytes = buf.getvalue()
+
+    response = requests.post(f"{server_url}/sound", data=wav_bytes,
+                             headers={'Content-Type': 'audio/wav'})
+    print(f"POST /sound -> {response.status_code}")
+    if response.status_code != 200:
+        print(f"Error: {response.text}")
+
+
 def test_tts(server_url, text=None):
     if not text:
         text = "Hello Stranger!"
@@ -84,7 +112,8 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description='Test backend servers', epilog=epilog)
 
-    parser.add_argument('--modality', type=str, choices=["audio", "image"], default="image", help="Choose a modality to test.")
+    parser.add_argument('--modality', type=str, choices=["audio", "image", "sound"], default="image", help="Choose a modality to test.")
+    parser.add_argument('--wav', type=str, default=None, help="Path to a WAV file to send to /sound (generates a tone if omitted).")
     parser.add_argument('--server', action='store_true', help="Run the host server")
     parser.add_argument('--port', type=int, default="5000", help="Port to use.")
     args, _ = parser.parse_known_args()
@@ -102,3 +131,6 @@ if __name__ == '__main__':
     elif args.modality == "image":
         server_url = f"http://localhost:{args.port}"
         test_image(server_url)
+    elif args.modality == "sound":
+        server_url = f"http://localhost:{args.port}"
+        test_sound(server_url, args.wav)

@@ -1,7 +1,10 @@
 import base64
+import io
 import json
 import logging
+import struct
 import unittest
+import wave
 
 import numpy as np
 from emissor.representation.scenario import Modality
@@ -40,6 +43,46 @@ class HostServerTest(unittest.TestCase):
             if DEBUG:
                 import soundfile as sf
                 sf.write("test.wav", data=np.concatenate(frames), samplerate=16000)
+
+    def _make_wav(self, rate=16000, channels=1, duration_ms=100):
+        """Return a minimal valid WAV as bytes (sine-free silence)."""
+        num_frames = rate * duration_ms // 1000
+        buf = io.BytesIO()
+        with wave.open(buf, 'wb') as wf:
+            wf.setnchannels(channels)
+            wf.setsampwidth(2)          # 16-bit
+            wf.setframerate(rate)
+            wf.writeframes(struct.pack(f'<{num_frames * channels}h', *([0] * num_frames * channels)))
+        return buf.getvalue()
+
+    def test_sound_plays(self):
+        server = BackendServer(sampling_rate=16000, channels=1, frame_size=480,
+                               camera_resolution=CameraResolution.NATIVE, camera_index=0)
+        wav_bytes = self._make_wav()
+        with server.app.test_client() as client:
+            rv = client.post("/sound", data=wav_bytes, content_type="audio/wav")
+            self.assertEqual(200, rv.status_code)
+
+    def test_sound_rejects_wrong_content_type(self):
+        server = BackendServer(sampling_rate=16000, channels=1, frame_size=480,
+                               camera_resolution=CameraResolution.NATIVE, camera_index=0)
+        with server.app.test_client() as client:
+            rv = client.post("/sound", data=self._make_wav(), content_type="application/octet-stream")
+            self.assertEqual(400, rv.status_code)
+
+    def test_sound_rejects_empty_body(self):
+        server = BackendServer(sampling_rate=16000, channels=1, frame_size=480,
+                               camera_resolution=CameraResolution.NATIVE, camera_index=0)
+        with server.app.test_client() as client:
+            rv = client.post("/sound", data=b"", content_type="audio/wav")
+            self.assertEqual(400, rv.status_code)
+
+    def test_sound_rejects_invalid_wav(self):
+        server = BackendServer(sampling_rate=16000, channels=1, frame_size=480,
+                               camera_resolution=CameraResolution.NATIVE, camera_index=0)
+        with server.app.test_client() as client:
+            rv = client.post("/sound", data=b"not a wav file", content_type="audio/wav")
+            self.assertEqual(500, rv.status_code)
 
     def test_cam(self):
         resolution = CameraResolution.VGA
