@@ -9,6 +9,7 @@ from cltl.backend.impl.sync_tts import SynchronizedTextToSpeech, TextOutputTTS
 from cltl.backend.server import BackendServer
 from cltl.backend.source.client_source import ClientAudioSource
 from cltl.backend.source.console_source import ConsoleOutput
+from cltl.backend.source.local_tts import LocalTTSOutput
 from cltl.backend.source.remote_tts import AnimatedRemoteTextOutput
 from cltl.backend.spi.audio import AudioSource
 from cltl.backend.spi.image import ImageSource
@@ -44,11 +45,16 @@ class BackendContainer(StorageContainer):
     def text_output(self) -> TextOutput:
         config = self.config_manager.get_config("cltl.backend.text_output")
         remote_url = config.get("remote_url")
+        remote_type = config.get("remote_type") if "remote_type" in config else "tts"
         gestures = config.get("gestures", multi=True) if "gestures" in config else None
-        if remote_url:
+        if remote_type == "console":
+            return ConsoleOutput()
+        elif remote_url and remote_type == "sound":
+            return LocalTTSOutput(sound_url=remote_url)
+        elif remote_url:
             return AnimatedRemoteTextOutput(remote_url, gestures)
         else:
-            return ConsoleOutput()
+            return LocalTTSOutput()
 
     @property
     @singleton
