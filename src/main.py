@@ -5,9 +5,11 @@ from cltl.combot.event.emissor import SIG, MEN
 from cltl.combot.infra.config.k8config import K8LocalConfigurationContainer
 from cltl.combot.infra.di_container import singleton
 from cltl.combot.infra.event.api import Event, PAYLOAD
+from cltl.combot.infra.event_log import LogWriter
 from cltl.combot.infra.event.memory import SynchronousEventBus
 from cltl_service.backend.backend_container import BackendContainer
-from emissor.representation.util import marshal, unmarshal, register_type_var
+from cltl_service.combot.event_log.service import EventLogService
+from emissor.representation.util import marshal, unmarshal, register_type_var, serializer as emissor_serializer
 from flask import Flask
 from werkzeug.middleware.dispatcher import DispatcherMiddleware
 from werkzeug.serving import run_simple
@@ -42,6 +44,41 @@ class ApplicationContainer(BackendContainer):
         if config.get("implementation") == "internal":
             return SynchronousEventBus()
         return super().event_bus
+
+    @property
+    @singleton
+    def log_writer(self) -> LogWriter:
+        config = self.config_manager.get_config("cltl.event")
+        if "log_dir" in config:
+            return LogWriter(config.get("log_dir"), emissor_serializer)
+
+        return False
+
+    @property
+    @singleton
+    def event_log_service(self) -> EventLogService:
+        if self.log_writer:
+            return EventLogService.from_config(self.log_writer, self.event_bus, self.config_manager)
+
+        return False
+
+    def start(self):
+        logger.info("Start Backend")
+        if self.event_log_service:
+            self.event_log_service.start()
+        super().start()
+
+    def stop(self):
+        logger.info("Stop Backend")
+
+        try:
+            if hasattr(self.event_bus, 'close'):
+                self.event_bus.close()
+            if self.event_log_service:
+                self.event_log_service.stop()
+        finally:
+            super().stop()
+
 
 
 def main():
