@@ -8,12 +8,22 @@ from typing import Optional
 
 import requests
 from gtts import gTTS
-from playsound import playsound
-from pydub import AudioSegment
 
 from cltl.backend.spi.text import TextOutput
 
 logger = logging.getLogger(__name__)
+
+try:
+    from playsound import playsound
+except ImportError:
+    playsound = None
+    logger.warning("playsound not available, LocalTTS is not available (consider configuring a remote URL)")
+
+try:
+    from pydub import AudioSegment
+except ImportError:
+    playsound = None
+    logger.warning("pydub not available, LocalTTS is not available for remote output")
 
 
 class LocalTTSOutput(TextOutput):
@@ -36,8 +46,10 @@ class LocalTTSOutput(TextOutput):
 
         if self._sound_url:
             self._play_remote()
-        else:
+        elif playsound is not None:
             playsound(self._output_path)
+        else:
+            logger.error("Could not render %s (url: %s)", text, self._sound_url)
 
     def _play_remote(self):
         mp3_audio = AudioSegment.from_mp3(self._output_path)

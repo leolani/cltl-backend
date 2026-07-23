@@ -1,4 +1,4 @@
-.[impl,local,host,service]
+.[impl,local,remote,host,service]
 
 # testing
 werkzeug

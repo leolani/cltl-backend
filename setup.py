@@ -32,6 +32,10 @@ setup(
             "playsound",
             'pyobjc;platform_system=="darwin"'
         ],
+        "remote": [
+            "gTTS",
+            "pydub",
+        ],
         "host": [
             "emissor",
             "cachetools",
@@ -45,7 +49,6 @@ setup(
             "flask<2.3",
             "pyaudio",
             "requests",
-            "sounddevice",
             "soundfile",
         ]
     },
