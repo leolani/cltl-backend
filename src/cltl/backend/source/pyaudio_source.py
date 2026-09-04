@@ -1,5 +1,6 @@
 import logging
 import uuid
+from threading import Lock, local
 from typing import Iterable
 
 import numpy as np
@@ -25,6 +26,14 @@ class PyAudioSource(AudioSource):
         self._active = False
         self._start_time = None
         self._time = None
+        self._lock = Lock()
+        # Bumped on every __enter__; lets a session's stop()/__exit__ recognize
+        # it has been superseded by a newer session and become a no-op. Each
+        # thread that opens this source keeps its own generation, since Python
+        # dispatches __exit__ to the original context-managed object (self),
+        # not to whatever __enter__ returned.
+        self._generation = 0
+        self._session = local()
 
     @property
     def audio(self) -> Iterable[np.array]:
@@ -66,16 +75,29 @@ class PyAudioSource(AudioSource):
                              self._stream.get_input_latency(), advanced)
         self._time = stream_time
 
-    def stop(self):
-        self._active = False
+    @property
+    def session(self):
+        """Generation this thread's currently open session belongs to, or
+        None if this thread never opened one."""
+        return getattr(self._session, "generation", None)
+
+    def stop(self, generation=None):
+        with self._lock:
+            if generation is not None and generation != self._generation:
+                logger.debug("Ignored stop for superseded microphone session (%s)", self.id)
+                return
+            self._active = False
         logger.debug("Stopped microphone (%s)", self.id)
 
     def __enter__(self):
-        self._stream = self._pyaudio.open(self._rate, self._channels, pyaudio.paInt16, input=True,
-                                          frames_per_buffer=self.BUFFER * self._frame_size)
-        self._active = True
-        self._start_time = self._stream.get_time()
-        self._time = self._start_time
+        with self._lock:
+            self._stream = self._pyaudio.open(self._rate, self._channels, pyaudio.paInt16, input=True,
+                                              frames_per_buffer=self.BUFFER * self._frame_size)
+            self._active = True
+            self._start_time = self._stream.get_time()
+            self._time = self._start_time
+            self._generation += 1
+            self._session.generation = self._generation
 
         logger.debug("Opened microphone (%s) with rate: %s, channels: %s, frame_size: %s",
                      self.id, self._rate, self._channels, self._frame_size)
@@ -83,22 +105,35 @@ class PyAudioSource(AudioSource):
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        if self._active:
-            self._active = False
-            self._stream.close()
-            logger.debug("Closed microphone (%s)", self.id)
-        else:
-            logger.warning("Ignored close microphone (%s)", self.id)
+        generation = self.session
+        with self._lock:
+            if generation != self._generation:
+                logger.warning("Ignored close for superseded microphone session (%s)", self.id)
+                return
+            if self._active:
+                self._active = False
+                self._stream.close()
+                logger.debug("Closed microphone (%s)", self.id)
+            else:
+                logger.warning("Ignored close microphone (%s)", self.id)
 
     def __iter__(self):
         return self
 
     def __next__(self):
-        if not self._active:
-            logger.debug("Stopped audio iteration")
-            raise StopIteration()
+        generation = self.session
+        with self._lock:
+            if not self._active or generation != self._generation:
+                logger.debug("Stopped audio iteration")
+                raise StopIteration()
+            stream = self._stream
 
-        data = self._stream.read(self._frame_size, exception_on_overflow=False)
-        self._mic_time = self._stream.get_time()
+        data = stream.read(self._frame_size, exception_on_overflow=False)
+
+        with self._lock:
+            if generation != self._generation:
+                logger.debug("Stopped audio iteration")
+                raise StopIteration()
+            self._mic_time = stream.get_time()
 
         return data

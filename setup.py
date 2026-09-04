@@ -7,7 +7,7 @@ with open("VERSION", "r") as fh:
     version = fh.read().strip()
 
 setup(
-    name='cltl.backend',
+    name='cltl_backend',
     version=version,
     package_dir={'': 'src'},
     packages=find_namespace_packages(include=['cltl.*', 'cltl_service.*'], where='src'),

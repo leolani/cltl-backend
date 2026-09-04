@@ -68,10 +68,11 @@ class BackendServer:
         def stream_mic():
             def audio_stream(mic):
                 with self._mic as mic_stream:
+                    # Store mic + session in (thread-local) app-context so the
+                    # teardown below can only stop the session it started.
+                    app_context.mic = self._mic
+                    app_context.mic_session = mic_stream.session
                     yield from mic_stream
-
-            # Store mic in (thread-local) app-context to be able to close it.
-            app_context.mic = self._mic
 
             mime_type = f"audio/L16; rate={self._sampling_rate}; channels={self._channels}; frame_size={self._frame_size}"
             stream = stream_with_context(audio_stream(self._mic))
@@ -138,7 +139,7 @@ class BackendServer:
         @self._app.teardown_request
         def close_mic(_=None):
             if "mic" in app_context:
-                app_context.mic.stop()
+                app_context.mic.stop(app_context.mic_session)
 
         return self._app
 

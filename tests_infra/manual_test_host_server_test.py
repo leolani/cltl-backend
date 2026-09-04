@@ -33,10 +33,12 @@ def test_mic(server_url, duration=10, store=False):
 
     while True:
         with source as mic:
+            audio = mic.audio
             snippet = []
+            print(f"Recording {duration}s of audio, then playing it back...")
             for _ in range((1000//30) * duration):
-                snippet.append(next(mic.audio))
-            store_wav(mic.audio, source.rate, store)
+                snippet.append(next(audio))
+            store_wav(snippet, source.rate, store)
 
 
 def test_image(server_url):
