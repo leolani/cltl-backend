@@ -4,10 +4,11 @@ from cltl.backend.api.backend import Backend
 from cltl.backend.api.camera import CameraResolution, Camera
 from cltl.backend.api.microphone import Microphone
 from cltl.backend.api.text_to_speech import TextToSpeech
+from cltl.backend.impl.image_camera import ImageCamera
 from cltl.backend.impl.sync_microphone import SynchronizedMicrophone
 from cltl.backend.impl.sync_tts import SynchronizedTextToSpeech, TextOutputTTS
 from cltl.backend.server import BackendServer
-from cltl.backend.source.client_source import ClientAudioSource
+from cltl.backend.source.client_source import ClientAudioSource, ClientImageSource
 from cltl.backend.source.console_source import ConsoleOutput
 from cltl.backend.source.local_tts import LocalTTSOutput
 from cltl.backend.source.remote_tts import AnimatedRemoteTextOutput
@@ -38,7 +39,7 @@ class BackendContainer(StorageContainer):
     @property
     @singleton
     def image_source(self) -> ImageSource:
-        return []
+        return ClientImageSource.from_config(self.config_manager)
 
     @property
     @singleton
@@ -64,7 +65,15 @@ class BackendContainer(StorageContainer):
     @property
     @singleton
     def camera(self) -> Camera:
-        return []
+        config = self.config_manager.get_config("cltl.backend.image")
+        rate = config.get_float("rate") if "rate" in config else 0.0
+        if rate <= 0:
+            # @singleton cannot handle None. BackendService gates its image
+            # thread on the same threshold and Backend.start() guards on this,
+            # so an unconfigured deployment keeps no camera at all.
+            return []
+
+        return ImageCamera(self.image_source, rate)
 
     @property
     @singleton
