@@ -1,3 +1,4 @@
+import os
 import shutil
 import tempfile
 import unittest
@@ -299,3 +300,59 @@ class CachedImageStorageTest(unittest.TestCase):
         np.testing.assert_array_equal(image_array, stored.image)
         np.testing.assert_array_equal(bounds, stored.view)
         np.testing.assert_array_equal(depth_array, stored.depth)
+
+
+class StorageCreatesItsDirectoryTest(unittest.TestCase):
+    """The storage path is created if it is not there yet.
+
+    Both classes did call ``os.makedirs``, but on
+    ``os.path.dirname(storage_path)`` — the *parent* of the storage directory,
+    not the directory itself. So a deployment pointed at `.../storage/audio`
+    got `.../storage` created and then failed on the first write with a bare
+    `RuntimeError: Error opening ...: System error.` from libsndfile.
+
+    The existing tests never caught it because they hand the storage a
+    `tempfile.mkdtemp()` that already exists.
+    """
+
+    def setUp(self):
+        self.tmp_dir = tempfile.mkdtemp()
+
+    def tearDown(self):
+        shutil.rmtree(self.tmp_dir)
+
+    def test_audio_storage_creates_a_missing_directory(self):
+        path = os.path.join(self.tmp_dir, "storage", "audio")
+
+        storage = CachedAudioStorage(path)
+
+        self.assertTrue(os.path.isdir(path))
+        storage.store("1", np.zeros(480, dtype=np.int16), 16000)
+        self.assertIn("1.wav", os.listdir(path))
+
+    def test_image_storage_creates_a_missing_directory(self):
+        path = os.path.join(self.tmp_dir, "storage", "image")
+
+        storage = CachedImageStorage(path)
+
+        self.assertTrue(os.path.isdir(path))
+
+    def test_intermediate_directories_are_created(self):
+        """``makedirs``, not ``mkdir`` — a path several levels deep works."""
+        path = os.path.join(self.tmp_dir, "a", "b", "c", "audio")
+
+        CachedAudioStorage(path)
+
+        self.assertTrue(os.path.isdir(path))
+
+    def test_an_existing_directory_is_left_alone(self):
+        """``exist_ok=True``, and nothing already stored there is disturbed."""
+        path = os.path.join(self.tmp_dir, "audio")
+        os.makedirs(path)
+        with open(os.path.join(path, "keep.txt"), "w") as f:
+            f.write("keep me")
+
+        CachedAudioStorage(path)
+
+        self.assertIn("keep.txt", os.listdir(path))
+
