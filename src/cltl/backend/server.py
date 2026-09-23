@@ -52,10 +52,10 @@ class BackendServer:
             mimetype_with_resolution = f"application/json; resolution={self._camera.resolution.name}"
 
             if flask.request.method == 'HEAD':
-                return Response(200, headers={"Content-Type": mimetype_with_resolution})
+                return Response(status=200, headers={"Content-Type": mimetype_with_resolution})
 
             if not self._active_cam:
-                return Response(404)
+                return Response(status=404)
 
             image = self._capture_camera()
 
