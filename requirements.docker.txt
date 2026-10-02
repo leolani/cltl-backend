@@ -1,1 +1,6 @@
-.[impl,remote,service]
+# The containerised backend: no PyAudio and no cv2.
+#
+# Containerised, this component only processes audio and images that arrived over
+# HTTP, so `docker` stands in for `service` -- same list without PyAudio. See the
+# comment on that extra in setup.py.
+.[impl,remote,docker]

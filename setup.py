@@ -22,10 +22,16 @@ setup(
     python_requires='>=3.7',
     install_requires=['numpy'],
     extras_require={
+        # `requests` only, for `cltl.backend.impl.remote_storage`. `mock` and
+        # `parameterized` were here and are gone: they are test libraries, nothing
+        # under src/ imports either, and tests get them from
+        # cltl-requirements/requirements.test.txt. A runtime extra naming them
+        # made this extra uninstallable wherever they are absent -- it is what
+        # broke the cltl-monitoring image, which depends on `cltl.backend[impl]`
+        # to reach `requests` and installs offline with
+        # `--no-index --find-links=/leolani`.
         "impl": [
-            "mock",
-            "requests",
-            "parameterized"
+            "requests"
         ],
         "local": [
             "gTTS",
@@ -48,6 +54,26 @@ setup(
             "emissor",
             "flask<2.3",
             "pyaudio",
+            "requests",
+            "soundfile",
+        ],
+        # `service` without the hardware. Containerised, this component only ever
+        # processes audio and images that arrived over HTTP: the microphone and
+        # camera are a `ClientAudioSource`/`ClientImageSource` pair that GET from
+        # a device host, and the wire format is base64 ndarray JSON rather than an
+        # image or audio codec. PyAudio is the one entry in `service` that is not
+        # used on that path -- nothing under `cltl_service/` imports it, and the
+        # two modules that do (`cltl.backend.server` and
+        # `cltl.backend.source.pyaudio_source`) are reached only when
+        # `run_server: True` asks for a real device, and import it inside a `try`.
+        #
+        # Leaving it in would mean compiling it from source in the image: there is
+        # no aarch64 wheel, so it needs portaudio19-dev and a toolchain, which is
+        # most of what separates cltl-base-slim from the 4 GB full base.
+        "docker": [
+            "cltl.combot",
+            "emissor",
+            "flask<2.3",
             "requests",
             "soundfile",
         ]
