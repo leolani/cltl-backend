@@ -29,19 +29,20 @@ class CltlAudioAdapter(BaseAdapter):
     """"Transport adapter" to support cltl-storage:// schema."""
     def __init__(self, storage_url):
         super().__init__()
-        self._storage_url = storage_url
+        # requests derives Basic Auth from the URL while preparing a request,
+        # which happens on the cltl-storage: URL, before send() rewrites it;
+        # so credentials embedded in storage_url are split off here and sent
+        # as the header by send() instead.
+        self._storage_url, self._auth = _split_userinfo(storage_url)
         self._http_adapter = HTTPAdapter()
 
     def send(self, request, stream=False, timeout=None, verify=True, cert=None, proxies=None):
         storage_request = request.copy()
 
         path = storage_request.url.split(f"{STORAGE_SCHEME}:")[1]
-        storage_request.url, auth = _split_userinfo(urljoin(self._storage_url, path))
-        # requests derives Basic Auth from the URL while preparing the request,
-        # which happened on the cltl-storage: URL, before this rewrite; so
-        # credentials embedded in storage_url have to become the header here.
-        if auth and "Authorization" not in storage_request.headers:
-            storage_request.headers["Authorization"] = _basic_auth_str(*auth)
+        storage_request.url = urljoin(self._storage_url, path)
+        if self._auth and "Authorization" not in storage_request.headers:
+            storage_request.headers["Authorization"] = _basic_auth_str(*self._auth)
 
         logger.debug("Resolve %s to %s", request.url, storage_request.url)
 
