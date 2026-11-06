@@ -3,12 +3,13 @@ import re
 import time
 from types import SimpleNamespace
 from typing import Iterator
-from urllib.parse import urljoin
+from urllib.parse import urljoin, urlsplit, urlunsplit, unquote
 
 import requests
 from cltl.combot.infra.config import ConfigurationManager
 from emissor.representation.scenario import Modality
 from requests.adapters import HTTPAdapter, BaseAdapter
+from requests.auth import _basic_auth_str
 
 from cltl.backend.api.camera import Image, CameraResolution
 from cltl.backend.api.serialization import image_hook
@@ -35,7 +36,12 @@ class CltlAudioAdapter(BaseAdapter):
         storage_request = request.copy()
 
         path = storage_request.url.split(f"{STORAGE_SCHEME}:")[1]
-        storage_request.url = urljoin(self._storage_url, path)
+        storage_request.url, auth = _split_userinfo(urljoin(self._storage_url, path))
+        # requests derives Basic Auth from the URL while preparing the request,
+        # which happened on the cltl-storage: URL, before this rewrite; so
+        # credentials embedded in storage_url have to become the header here.
+        if auth and "Authorization" not in storage_request.headers:
+            storage_request.headers["Authorization"] = _basic_auth_str(*auth)
 
         logger.debug("Resolve %s to %s", request.url, storage_request.url)
 
@@ -43,6 +49,17 @@ class CltlAudioAdapter(BaseAdapter):
 
     def close(self):
         self._http_adapter.close()
+
+
+def _split_userinfo(url: str):
+    parts = urlsplit(url)
+    if parts.username is None:
+        return url, None
+
+    netloc = parts.netloc.rpartition("@")[2]
+    auth = (unquote(parts.username), unquote(parts.password or ""))
+
+    return urlunsplit(parts._replace(netloc=netloc)), auth
 
 
 class ClientAudioSource(AudioSource):
