@@ -71,8 +71,10 @@ class SynchronizedTextToSpeech(TextToSpeech):
             lock = self._resource_manager.get_write_lock(AUDIO_RESOURCE_NAME)
             logger.debug("Await talking")
             if not self._acquire(lock):
-                logger.warning("Could not obtain the audio lock within %ss, speaking without muting the microphone",
-                               self.ACQUIRE_TIMEOUT)
+                # The microphone did not mute in time, so it is stuck (e.g. the host stopped delivering
+                # audio frames) or gone. This should never happen: speaking now risks the agent hearing itself.
+                logger.error("Could not obtain the audio lock within %ss, the microphone is not responding. "
+                             "Speaking without muting it", self.ACQUIRE_TIMEOUT)
                 self._tts.say(text)
                 return
 
