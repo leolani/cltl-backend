@@ -1,4 +1,5 @@
 import logging
+import time
 
 from cltl.combot.infra.resource.api import ResourceManager
 from cltl.combot.infra.util import ThreadsafeBoolean
@@ -42,6 +43,9 @@ class TextOutputTTS(TextToSpeech):
 
 
 class SynchronizedTextToSpeech(TextToSpeech):
+    ACQUIRE_TIMEOUT = 10
+    ACQUIRE_RETRY_INTERVAL = 0.02
+
     def __init__(self, tts: TextToSpeech, resource_manager: ResourceManager):
         """
         A SynchronizedMicrophone can be synchronized with other audio activity.
@@ -64,12 +68,40 @@ class SynchronizedTextToSpeech(TextToSpeech):
 
     def say(self, text: str):
         try:
+            lock = self._resource_manager.get_write_lock(AUDIO_RESOURCE_NAME)
             logger.debug("Await talking")
-            with self._resource_manager.get_write_lock(AUDIO_RESOURCE_NAME):
+            if not self._acquire(lock):
+                logger.warning("Could not obtain the audio lock within %ss, speaking without muting the microphone",
+                               self.ACQUIRE_TIMEOUT)
+                self._tts.say(text)
+                return
+
+            try:
                 logger.debug("Talking")
                 self._tts.say(text)
+            finally:
+                lock.release()
         except:
             logger.exception("Failed to convert text to speech")
+
+    def _acquire(self, lock) -> bool:
+        """
+        Acquire the write lock, retrying until it is held.
+
+        Older versions of `WriteLock.acquire` return False without blocking while the
+        microphone has flagged the writers as interrupted (it does so after every failed
+        attempt to unmute, i.e. for as long as the previous utterance was playing).
+        `with lock:` ignores that result, so a second utterance that follows the first
+        immediately would be spoken without muting the microphone.
+        """
+        deadline = time.monotonic() + self.ACQUIRE_TIMEOUT
+        while True:
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                return False
+            if lock.acquire(timeout=remaining):
+                return True
+            time.sleep(self.ACQUIRE_RETRY_INTERVAL)
 
     @property
     def is_talking(self) -> bool:

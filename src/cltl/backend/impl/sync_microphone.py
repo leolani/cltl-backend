@@ -53,6 +53,8 @@ class SynchronizedMicrophone(Microphone):
         """
         Tear down resources for synchronization.
         """
+        # Writers wait for this flag to clear; nobody is left to clear it once the mic is gone
+        self._audio_lock.interrupt_writers(False)
         if self._audio_lock.locked:
             self._audio_lock.release()
         if self._mic_lock.locked:
